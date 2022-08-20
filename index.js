@@ -148,7 +148,6 @@ function main(args) {
       const unique = [...new Set(content)].map((s) => JSON.parse(s))
       dbg('unique:', JSON.stringify(unique))
       const root = unique[0]
-      // unique.forEach(u => merge(root, u))
       for (let i = 1; i < unique.length; i++) {
         merge(root, unique[i])
       }
@@ -245,7 +244,6 @@ function getParamNames(func) {
 }
 
 function deriveType(fn, arg) {
-  // const args = Array.from(arguments)
   const args = Array.from(arg)
   dbg('deriving types for', fn, args)
   const stack = new Error().stack
@@ -256,10 +254,6 @@ function deriveType(fn, arg) {
   for (let i = 0; i < args.length; i++) {
     paramShapes[params[i]] = argumentToShape(args[i])
   }
-  // for (const param of params) {
-  //   paramShapes[param] = argumentToShape(
-  // }
-  // const [file, line, column] = locationInfo.slice(1, locationInfo.length - 1).split(':')
   const filePath = path.join(
     DERIVE_TYPE_GEN_FOLDER,
     encodeToFilename(locationInfo)
