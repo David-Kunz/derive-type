@@ -274,7 +274,6 @@ function deriveType(fn, arg) {
 // - file locks for concurrent append
 // - dedupe
 // - multiline functions
-// - proper support for optional (maybe extract single params into @param)
 // - multiple functions at once
 
 module.exports = deriveType
