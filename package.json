@@ -6,6 +6,7 @@
   "scripts": {
     "test": "npm test"
   },
+  "bin": "index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/David-Kunz/derive-type.git"
