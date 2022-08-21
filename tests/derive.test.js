@@ -99,6 +99,18 @@ describe('derive types', () => {
       })
     })
 
+    test('empty array', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual('export type GEN = (arg0: (any)[]) => any')
+        done()
+      })
+    })
+
     test('array of numbers or strings', (done) => {
       function simpleFn(x) {
         dt(x)

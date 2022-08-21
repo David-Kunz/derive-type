@@ -57,6 +57,7 @@ function shapeToTSType(shape, root, cyclicShapes = new Map()) {
       for (const item of shape) {
         res = res + shapeToTSType(item, false, cyclicShapes) + '|'
       }
+      if (!shape.length) res = res + 'any|'
       res = res.slice(0, -1) + ')[]'
       if (shape[IDENTIFIER]) {
         cyclicShapes.set(shape[IDENTIFIER], res)
@@ -226,11 +227,13 @@ function _main(cb) {
 }
 
 function main() {
+  const version = '0.0.8'
   const runtimeArgs = process.argv.slice(2)
   if (runtimeArgs[0] === '--version' || runtimeArgs[0] === '-v') {
-    console.log('Derive-Type Version 0.0.7')
+    console.log('Derive-Type Version', version)
     return
   }
+  dbg('Derive-Type Version', version)
   dbg('runtime arguments:', runtimeArgs)
   initializeFilesystem()
 
