@@ -5,6 +5,27 @@ describe('modify file', () => {
     dt._init()
   })
 
+  test('single var', (done) => {
+    // comment
+    const x = 'foo'
+    dt(x)
+
+    dt._main(({ res, typeDef, modifiedFile }) => {
+      expect(res).toEqual('export type GEN = (arg0: string) => any')
+      expect(typeDef).toEqual(
+        expect.stringMatching(
+          /^\/\*\* @type { import\(.*\)\.GEN } Generated \*\//
+        )
+      )
+      expect(modifiedFile).toEqual(
+        expect.stringMatching(
+          /\/\/ comment\n\s*\/\*\* @type { import\(.*\)\.GEN } Generated \*\/\n\s*const x/
+        )
+      )
+      done()
+    })
+  })
+
   test('single function', (done) => {
     // comment
     function simpleFn(x) {

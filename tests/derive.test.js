@@ -39,7 +39,9 @@ describe('derive types', () => {
       function simpleFn(x) {
         dt(x)
       }
-      simpleFn(() => { console.log('foo') })
+      simpleFn(() => {
+        console.log('foo')
+      })
 
       dt._main(({ res }) => {
         expect(res).toEqual('export type GEN = (arg0: any) => any')
@@ -447,6 +449,23 @@ describe('derive types', () => {
       dt._main(({ res }) => {
         expect(res).toEqual(
           'export type GEN = (arg0: (string|number|boolean)) => any'
+        )
+        done()
+      })
+    })
+    test('multiple invocations for optional union', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn('a')
+      simpleFn(123)
+      simpleFn(true)
+      simpleFn({ a: 1, b: 'foo' })
+      simpleFn({ a: 1 })
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: (string|number|boolean|{"a": number, "b"?: string})) => any'
         )
         done()
       })
