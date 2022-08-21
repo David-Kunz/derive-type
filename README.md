@@ -22,7 +22,7 @@ function myFunction(x, y) {
 myFunction(1, 2)
 ```
 
-The only thing you need to do is to call the function at the top of your function body and invoke the binary with the code to trigger the function invocations.
+Add this function call at the top of your function body:
 
 ```js
 // main.js
@@ -34,6 +34,8 @@ function myFunction(x, y) {
 
 myFunction(1, 2)
 ```
+
+Then invoke the binary with the code to trigger the function invocations:
 
 ```bash
 npx derive-type node main.js
