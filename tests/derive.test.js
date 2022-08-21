@@ -113,6 +113,58 @@ describe('derive types', () => {
       })
     })
 
+    test('object with empty array', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn({ a: [] })
+
+      dt._main(({ res }) => {
+        expect(res).toEqual('export type GEN = (arg0: {"a": (any)[]}) => any')
+        done()
+      })
+    })
+
+    test('object with empty optional array', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn({})
+
+      dt._main(({ res }) => {
+        expect(res).toEqual('export type GEN = (arg0: {}) => any')
+        done()
+      })
+    })
+
+    test('multiple empty array', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([])
+      simpleFn([])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual('export type GEN = (arg0: (any)[]) => any')
+        done()
+      })
+    })
+
+    test('empty optional array', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn()
+      simpleFn([])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: (undefined|(any)[])) => any'
+        )
+        done()
+      })
+    })
+
     test('array of numbers or strings', (done) => {
       function simpleFn(x) {
         dt(x)

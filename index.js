@@ -46,7 +46,8 @@ function shapeToTSType(shape, root, cyclicShapes = new Map()) {
             cyclicShapes
           )}, `
       })
-      resGen = resGen.slice(0, -2) + ') => any'
+      if (shape.length) resGen = resGen.slice(0, -2)
+      resGen = resGen + ') => any'
       let res = ''
       for (const [key, value] of cyclicShapes.entries()) {
         res = res + `type ${key} = ${value}\n`
@@ -78,6 +79,7 @@ function shapeToTSType(shape, root, cyclicShapes = new Map()) {
       res = res + shapeToTSType(u, false, cyclicShapes) + '|'
     }
     res = res.slice(0, -1) + ')'
+    if (!shape[UNION].length) res = 'any'
     if (shape[IDENTIFIER]) {
       cyclicShapes.set(shape[IDENTIFIER], res)
     }
@@ -85,7 +87,9 @@ function shapeToTSType(shape, root, cyclicShapes = new Map()) {
   }
   if (typeof shape === 'object') {
     let res = '{'
+    let hasKeys = false
     for (const key in shape) {
+      hasKeys = true
       if (key === IDENTIFIER) continue
       const quote = root ? '' : '"'
       res =
@@ -94,7 +98,8 @@ function shapeToTSType(shape, root, cyclicShapes = new Map()) {
           typeof shape[key] === 'object' && OPTION in shape[key] ? '?' : ''
         }: ${shapeToTSType(shape[key], false, cyclicShapes)}, `
     }
-    res = res.slice(0, -2) + '}'
+    if (hasKeys) res = res.slice(0, -2)
+    res = res + '}'
     if (shape[IDENTIFIER]) {
       cyclicShapes.set(shape[IDENTIFIER], res)
     }
