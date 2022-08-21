@@ -3,6 +3,12 @@
 A simple function to generate types based on function invocations.
 
 
+## Installation
+
+```bash
+npm i derive-type
+```
+
 ## Simple Example
 
 Original source code:
@@ -51,9 +57,10 @@ myFunction(1, 2)
 
 ## Notes
 
-- The function invocations don't need to be in the same file, usally they are invoked through tests:
+- The function invocations don't need to be in the same file, usally they are based on tests:
   ```bash
   npx derive-type npm test
   ```
-- The generated types are based on the merged input of all function invocations
-- The generated types are located in `os.tmpdir()`, this can be changed through the environment variable `DERIVE_TYPE_FOLDER`
+- The generated types are based on the merged input of all function invocations.
+- The generated types are located in `os.tmpdir()`, this can be changed through the environment variable `DERIVE_TYPE_FOLDER`.
+- Debugging output can be enabled by setting the environment variable `DERIVE_TYPE_DEBUG` to true.
