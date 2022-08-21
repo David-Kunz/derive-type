@@ -40,9 +40,9 @@ function shapeToTSType(shape, root) {
     } else {
       let res = '('
       for (const item of shape) {
-        res = res + shapeToTSType(item) + ', '
+        res = res + shapeToTSType(item) + '|'
       }
-      res = res.slice(0, -2) + ')[]'
+      res = res.slice(0, -1) + ')[]'
       return res
     }
   }
@@ -93,7 +93,15 @@ function merge(root, obj) {
         if (typeof obj[key] === 'object') {
           if (Array.isArray(obj[key])) {
             if (Array.isArray(root[key])) {
-              throw new Error('TODO: merge arrays')
+              const combined = [...root[key], ...obj[key]]
+              const rootObj = combined.find((c) => c && typeof c === 'object')
+              const res = []
+              for (const c of combined) {
+                if (c === rootObj) res.push(c)
+                else if (c && typeof c === 'object') merge(rootObj, c)
+                else res.push(c)
+              }
+              root[key] = [...new Set(res)]
             } else {
               root[key] = { [UNION]: [root[key], obj[key]] }
             }
@@ -108,11 +116,19 @@ function merge(root, obj) {
           if (root[key][UNION].includes(obj[key])) {
             // nothing to do
           } else {
+            // todo: merge, check for object
             root[key][UNION].push(obj[key])
           }
         } else {
-          //  two objects need to be merged
-          throw new Error('merging object with union not yet supported')
+          //  two objects need to be merged, can also be array
+          const rootObj = root[key][UNION].find(
+            (u) => u && typeof u === 'object'
+          )
+          if (rootObj) {
+            merge(rootObj, obj[key])
+          } else {
+            root[key][UNION].push(obj[key])
+          }
         }
       }
   }
@@ -205,9 +221,22 @@ function argumentToShape(arg) {
   if (typeof arg === 'boolean') return 'boolean'
   if (typeof arg === 'string') return 'string'
   if (Array.isArray(arg)) {
-    if (arg.some((a) => a && typeof a === 'object'))
-      throw new Error('TODO: arrays of objects not yet supported')
-    return [...new Set(arg.map((a) => argumentToShape(a)))]
+    const rootObj = arg.find(
+      (a) => a && typeof a === 'object' && !Array.isArray(a)
+    ) // TODO: Array of Array
+    const rootShape = rootObj && argumentToShape(rootObj)
+    const res = []
+    for (const a of arg) {
+      if (rootObj && a && typeof a === 'object' && !Array.isArray(a)) {
+        if (rootObj === a) res.push(rootShape)
+        else {
+          merge(rootShape, argumentToShape(a))
+        }
+      } else {
+        res.push(argumentToShape(a))
+      }
+    }
+    return [...new Set(res)]
   }
   if (typeof arg === 'object') {
     const shape = {}

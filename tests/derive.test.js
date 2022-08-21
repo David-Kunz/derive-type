@@ -74,6 +74,297 @@ describe('derive types', () => {
         done()
       })
     })
+
+    test('array of numbers', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([1, 2, 3])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual('export type GEN = (arg0: (number)[]) => any')
+        done()
+      })
+    })
+
+    test('array of numbers or strings', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([1, 2, 'foo', 'bar'])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: (number|string)[]) => any'
+        )
+        done()
+      })
+    })
+
+    test('array of objects', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([{ foo: 1 }, { foo: 2 }])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: ({"foo": number})[]) => any'
+        )
+        done()
+      })
+    })
+
+    test('array of objects with optional values', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([{ foo: 1 }, { foo: 2, optional: true }])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: ({"foo": number, "optional"?: boolean})[]) => any'
+        )
+        done()
+      })
+    })
+
+    test('array of different objects', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([{ foo: 1 }, { bar: 'xxx' }])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: ({"foo"?: number, "bar"?: string})[]) => any'
+        )
+        done()
+      })
+    })
+
+    test('array of different nested objects', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([
+        { foo: 1, nested: { b: 'yyy' } },
+        { foo: 1, nested: { a: 'xxx' } },
+      ])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: ({"foo": number, "nested": {"b"?: string, "a"?: string}})[]) => any'
+        )
+        done()
+      })
+    })
+
+    test('array of objects and primitive values', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn(['primitive', { bar: 'xxx' }])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: (string|{"bar": string})[]) => any'
+        )
+        done()
+      })
+    })
+
+    test('multiple invocation array of numbers', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([1, 2, 3])
+      simpleFn([4, 5, 6])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual('export type GEN = (arg0: (number)[]) => any')
+        done()
+      })
+    })
+
+    test('multiple invocation array of objects', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([{ foo: 'bar' }])
+      simpleFn([{ foo: 'baz' }])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: ({"foo": string})[]) => any'
+        )
+        done()
+      })
+    })
+
+    test('multiple invocation array of different objects', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([{ foo: 'bar' }])
+      simpleFn([{ foo: 'baz', optional: true }])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: ({"foo": string, "optional"?: boolean})[]) => any'
+        )
+        done()
+      })
+    })
+
+    test('multiple invocation with multiple entries for array of different objects', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([{ foo: 'bar' }, { foo: 'xx' }])
+      simpleFn([
+        { foo: 'baz', optional: true },
+        { foo: 'yy', optional: false },
+      ])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: ({"foo": string, "optional"?: boolean})[]) => any'
+        )
+        done()
+      })
+    })
+
+    test('multiple invocation with different multiple entries for array of different objects', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([{ foo: 'bar' }, { xxx: 'xxx' }])
+      simpleFn([
+        { foo: 'baz', optional: true },
+        { yyy: 'yyy', optional: false },
+      ])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: ({"foo"?: string, "xxx"?: string, "optional"?: boolean, "yyy"?: string})[]) => any'
+        )
+        done()
+      })
+    })
+
+    test('arrays of arrays with primitive values', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([['a', 'b']])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual('export type GEN = (arg0: ((string)[])[]) => any')
+        done()
+      })
+    })
+
+    test('multiple invocations with arrays of arrays with primitive values', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([['a', 'b']])
+      simpleFn([['c', 'd']])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual('export type GEN = (arg0: ((string)[])[]) => any')
+        done()
+      })
+    })
+
+    test('arrays of arrays with objects', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([[{ foo: 'x' }, { foo: 'y' }]])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: (({"foo": string})[])[]) => any'
+        )
+        done()
+      })
+    })
+
+    test('multiple invocations with arrays of arrays with objects', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([[{ foo: 'x' }, { foo: 'y' }]])
+      simpleFn([[{ foo: 'a' }, { foo: 'b' }]])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: (({"foo": string})[])[]) => any'
+        )
+        done()
+      })
+    })
+
+    test('arrays of arrays with different objects', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([[{ foo: 'x' }, { foo: 'y', optional: true }]])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: (({"foo": string, "optional"?: boolean})[])[]) => any'
+        )
+        done()
+      })
+    })
+
+    test('multiple invocations with arrays of arrays with objects', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([[{ foo: 'a' }, { foo: 'b' }]])
+      simpleFn([[{ foo: 'x' }, { foo: 'y', optional: true }]])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: (({"foo": string, "optional"?: boolean})[])[]) => any'
+        )
+        done()
+      })
+    })
+
+    test('arrays of arrays with different union objects', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([[{ foo: 'x' }, { foo: 'y', optional: true }, 'xxx']])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: (({"foo": string, "optional"?: boolean}|string)[])[]) => any'
+        )
+        done()
+      })
+    })
+
+    test('multiple invocations with arrays of arrays with different union objects', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([[{ foo: 'x' }, { foo: 'y', optional: true }, 'xxx']])
+      simpleFn([[true]])
+      simpleFn(true)
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: (((({"foo": string, "optional"?: boolean}|boolean)|string)[])[]|boolean)) => any'
+        )
+        done()
+      })
+    })
   })
 
   describe('unary functions with multiple invocations', () => {
