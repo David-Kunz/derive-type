@@ -126,7 +126,7 @@ function merge(root, obj) {
         root[key] = { [UNION]: [root[key], obj[key]] }
       }
     } else if (typeof root[key] === 'object')
-      if (!root[UNION]) {
+      if (!root[key][UNION]) {
         if (typeof obj[key] === 'object') {
           if (Array.isArray(obj[key])) {
             if (Array.isArray(root[key])) {

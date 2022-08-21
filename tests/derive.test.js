@@ -435,6 +435,22 @@ describe('derive types', () => {
         done()
       })
     })
+
+    test('multiple invocations for union', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn('a')
+      simpleFn(123)
+      simpleFn(true)
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: (string|number|boolean)) => any'
+        )
+        done()
+      })
+    })
   })
 
   describe('unary functions with multiple invocations', () => {
