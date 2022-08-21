@@ -32,16 +32,17 @@ function shapeToTSType(shape, root) {
     if (root) {
       let res = 'export type GEN = ('
       shape.forEach((s, idx) => {
-        res = res + `arg${idx}:${shapeToTSType(s)},`
+        const optional = s && typeof s === 'object' && s[OPTION]
+        res = res + `arg${idx}${optional ? '?' : ''}: ${shapeToTSType(s)}, `
       })
-      res = res.slice(0, -1) + ') => any'
+      res = res.slice(0, -2) + ') => any'
       return res
     } else {
       let res = '('
       for (const item of shape) {
-        res = res + shapeToTSType(item) + ','
+        res = res + shapeToTSType(item) + ', '
       }
-      res = res.slice(0, -1) + ')[]'
+      res = res.slice(0, -2) + ')[]'
       return res
     }
   }
@@ -64,9 +65,9 @@ function shapeToTSType(shape, root) {
         res +
         `${quote}${key}${quote}${
           typeof shape[key] === 'object' && OPTION in shape[key] ? '?' : ''
-        }: ${shapeToTSType(shape[key])},`
+        }: ${shapeToTSType(shape[key])}, `
     }
-    res = res.slice(0, -1) + '}'
+    res = res.slice(0, -2) + '}'
     return res
   }
   return shape
@@ -120,6 +121,8 @@ function merge(root, obj) {
 function _main(cb) {
   dbg('### Generating types')
   const files = fs.readdirSync(DERIVE_TYPE_GEN_FOLDER)
+  const modLog = []
+  const cache = new Map() // speedup and needed for tests since we don't change the original test files
   files.forEach((file) => {
     const decoded = decodeFromFileName(file)
     const [fileName, line, column] = decoded
@@ -143,18 +146,28 @@ function _main(cb) {
     dbg('###############################')
     dbg()
     const typeDef = `/** @type { import("${filePath}").GEN } Generated */`
-    if (cb) {
-      cb({ typeDef, res })
-      return
-    }
 
     const typeDefFilePath = filePath + '.d.ts'
     fs.writeFileSync(typeDefFilePath, res)
-    const fileCont = fs.readFileSync(meta.fileName, 'utf8').split('\n')
+    const fileCont =
+      cache.get(meta.fileName) ||
+      fs.readFileSync(meta.fileName, 'utf8').split('\n')
     let rmLine = 0
-    if (meta.line >= 3 && fileCont[meta.line - 3].startsWith('/**')) rmLine = 1
-    fileCont.splice(meta.line - 2 - rmLine, rmLine, typeDef)
-    fs.writeFileSync(meta.fileName, fileCont.join('\n'))
+    const adjustedLine = modLog.reduce((p, c) => {
+      if (p > c) return p + 1
+      return p
+    }, meta.line)
+    if (adjustedLine >= 3 && fileCont[adjustedLine - 3].startsWith('/**'))
+      rmLine = 1
+    fileCont.splice(adjustedLine - 2 - rmLine, rmLine, typeDef)
+    if (rmLine === 0) modLog.push(adjustedLine - 2)
+    cache.set(meta.fileName, fileCont)
+    const modifiedFile = fileCont.join('\n')
+    if (!cb) fs.writeFileSync(meta.fileName, modifiedFile)
+    if (cb) {
+      cb({ typeDef, res, modifiedFile })
+      return
+    }
     dbg()
     dbg()
   })

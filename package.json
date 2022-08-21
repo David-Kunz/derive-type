@@ -4,7 +4,7 @@
   "description": "Derive types dynamically by running tests to capture value combinations",
   "main": "index.js",
   "scripts": {
-    "test": "npm test"
+    "test": "jest"
   },
   "bin": "index.js",
   "repository": {
