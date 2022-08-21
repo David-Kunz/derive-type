@@ -365,6 +365,52 @@ describe('derive types', () => {
         done()
       })
     })
+
+    test('cyclic objects', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      const obj = { a: 1 }
+      obj.b = obj
+      simpleFn(obj)
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          expect.stringMatching(/{"a": number, "b": CYCLE.*}/)
+        )
+        done()
+      })
+    })
+
+    test('nested cyclic objects', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      const obj = { a: 1 }
+      obj.b = { c: obj }
+      simpleFn(obj)
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(expect.stringMatching(/"c": CYCLE/))
+        done()
+      })
+    })
+
+    test('several nested cyclic objects', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      const obj = { a: 1 }
+      obj.b = { c: obj }
+      obj.d = obj.b
+      simpleFn(obj)
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(expect.stringMatching(/"c": CYCLE/))
+        expect(res).toEqual(expect.stringMatching(/"d": CYCLE/))
+        done()
+      })
+    })
   })
 
   describe('unary functions with multiple invocations', () => {

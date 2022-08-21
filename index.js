@@ -7,11 +7,16 @@ const { exec } = require('child_process')
 const os = require('os')
 const path = require('path')
 const fs = require('fs')
+const crypto = require('crypto')
 
 const DERIVE_TYPE_FOLDER =
   process.env.DERIVE_TYPE_FOLDER || path.join(os.tmpdir(), 'derive-type-gen')
+// TODO: use symbols
 const UNION = '___union'
 const OPTION = '___option'
+const IDENTIFIER = '___identifier'
+const CACHED = '___cached'
+const ORIGINAL = '___original'
 
 function initializeFilesystem() {
   dbg('### Initialize')
@@ -27,47 +32,75 @@ function initializeFilesystem() {
   })
 }
 
-function shapeToTSType(shape, root) {
+function shapeToTSType(shape, root, cyclicShapes = new Map()) {
   if (Array.isArray(shape)) {
     if (root) {
-      let res = 'export type GEN = ('
+      let resGen = 'export type GEN = ('
       shape.forEach((s, idx) => {
         const optional = s && typeof s === 'object' && s[OPTION]
-        res = res + `arg${idx}${optional ? '?' : ''}: ${shapeToTSType(s)}, `
+        resGen =
+          resGen +
+          `arg${idx}${optional ? '?' : ''}: ${shapeToTSType(
+            s,
+            false,
+            cyclicShapes
+          )}, `
       })
-      res = res.slice(0, -2) + ') => any'
-      return res
+      resGen = resGen.slice(0, -2) + ') => any'
+      let res = ''
+      for (const [key, value] of cyclicShapes.entries()) {
+        res = res + `type ${key} = ${value}\n`
+      }
+      return res + resGen
     } else {
       let res = '('
       for (const item of shape) {
-        res = res + shapeToTSType(item) + '|'
+        res = res + shapeToTSType(item, false, cyclicShapes) + '|'
       }
       res = res.slice(0, -1) + ')[]'
+      if (shape[IDENTIFIER]) {
+        cyclicShapes.set(shape[IDENTIFIER], res)
+      }
       return res
     }
   }
   if (typeof shape === 'object' && OPTION in shape) {
-    return shapeToTSType(shape[OPTION])
+    let res = shapeToTSType(shape[OPTION], false, cyclicShapes)
+    if (shape[IDENTIFIER]) {
+      cyclicShapes.set(shape[IDENTIFIER], res)
+    }
+    return res
   }
   if (typeof shape === 'object' && shape[UNION]) {
     let res = '('
     for (const u of shape[UNION]) {
-      res = res + shapeToTSType(u) + '|'
+      res = res + shapeToTSType(u, false, cyclicShapes) + '|'
     }
     res = res.slice(0, -1) + ')'
+    if (shape[IDENTIFIER]) {
+      cyclicShapes.set(shape[IDENTIFIER], res)
+    }
     return res
   }
   if (typeof shape === 'object') {
     let res = '{'
     for (const key in shape) {
+      if (key === IDENTIFIER) continue
       const quote = root ? '' : '"'
       res =
         res +
         `${quote}${key}${quote}${
           typeof shape[key] === 'object' && OPTION in shape[key] ? '?' : ''
-        }: ${shapeToTSType(shape[key])}, `
+        }: ${shapeToTSType(shape[key], false, cyclicShapes)}, `
     }
     res = res.slice(0, -2) + '}'
+    if (shape[IDENTIFIER]) {
+      cyclicShapes.set(shape[IDENTIFIER], res)
+    }
+    return res
+  }
+  if (typeof shape === 'string' && shape.startsWith('cyclic:')) {
+    let res = shape.replace(/^cyclic:/, '')
     return res
   }
   return shape
@@ -76,12 +109,15 @@ function shapeToTSType(shape, root) {
 function merge(root, obj) {
   for (const key in root) {
     if (!(key in obj)) {
-      root[key] = { [OPTION]: root[key] }
+      if (typeof key !== 'string' || !key.startsWith('cyclic:'))
+        root[key] = { [OPTION]: root[key] }
     }
   }
   for (const key in obj) {
     if (!(key in root)) {
-      root[key] = { [OPTION]: obj[key] }
+      if (typeof key === 'string' && key.startsWith('cyclic:'))
+        root[key] = obj[key]
+      else root[key] = { [OPTION]: obj[key] }
     } else if (typeof root[key] === 'string') {
       if (obj[key] === root[key]) {
         // nothing to do
@@ -214,7 +250,25 @@ if (require.main === module) {
   main()
 }
 
-function argumentToShape(arg) {
+function genId() {
+  return 'CYCLE' + crypto.randomBytes(8).toString('hex')
+}
+
+function setIdentifier(obj) {
+  if (!obj) return obj
+  if (Array.isArray(obj)) return obj.forEach((o) => setIdentifier(o))
+  if (typeof obj === 'object') {
+    if (obj[ORIGINAL]) obj[IDENTIFIER] = obj[ORIGINAL][IDENTIFIER]
+    for (const key in obj) {
+      if (key === IDENTIFIER) continue
+      setIdentifier(obj[key])
+    }
+    return
+  }
+  return obj
+}
+
+function argumentToShape(arg, root, objCache = new WeakSet()) {
   if (arg === null) return 'null'
   if (arg === undefined) return 'undefined'
   if (typeof arg === 'number') return 'number'
@@ -224,28 +278,44 @@ function argumentToShape(arg) {
     const rootObj = arg.find(
       (a) => a && typeof a === 'object' && !Array.isArray(a)
     ) // TODO: Array of Array
-    const rootShape = rootObj && argumentToShape(rootObj)
+    const rootShape = rootObj && argumentToShape(rootObj, root, objCache)
     const res = []
     for (const a of arg) {
       if (rootObj && a && typeof a === 'object' && !Array.isArray(a)) {
         if (rootObj === a) res.push(rootShape)
         else {
-          merge(rootShape, argumentToShape(a))
+          merge(rootShape, argumentToShape(a, root, objCache))
         }
       } else {
-        res.push(argumentToShape(a))
+        res.push(argumentToShape(a, root, objCache))
       }
     }
-    return [...new Set(res)]
+    const result = [...new Set(res)]
+    if (root) {
+      setIdentifier(result)
+    }
+    return result
   }
   if (typeof arg === 'object') {
+    objCache.add(arg)
     const shape = {}
     const sortedKeys = []
     for (key in arg) sortedKeys.push(key)
-    sortedKeys.sort()
+    sortedKeys.filter((k) => k !== IDENTIFIER).sort()
     for (const key of sortedKeys) {
-      shape[key] = argumentToShape(arg[key])
+      const sub = arg[key]
+      if (sub && typeof sub === 'object' && objCache.has(sub)) {
+        const id = sub[IDENTIFIER] || genId()
+        if (!sub[IDENTIFIER]) {
+          sub[IDENTIFIER] = id
+        }
+        shape[key] = 'cyclic:' + id
+      } else {
+        shape[key] = argumentToShape(arg[key], root, objCache)
+      }
     }
+    // Store the original object because it might be enriched with IDENTIFIER
+    Object.defineProperty(shape, ORIGINAL, { value: arg, enumerable: false })
     return shape
   }
 }
@@ -262,13 +332,11 @@ function deriveType(...arg) {
   const args = Array.from(arg)
   const stack = new Error().stack
   const [_x, _y, locationInfo] = stack.split('\n')[2].trim().split(' ')
-  const argShapes = args.map((a) => argumentToShape(a))
-  const filePath = path.join(
-    DERIVE_TYPE_FOLDER,
-    encodeToFilename(locationInfo)
-  )
+  const argShapes = argumentToShape(args, true)
+  const filePath = path.join(DERIVE_TYPE_FOLDER, encodeToFilename(locationInfo))
   dbg('Appending file', filePath)
 
+  dbg('shapes', argShapes)
   fs.appendFileSync(filePath, JSON.stringify(argShapes) + '\n')
 }
 

@@ -2,7 +2,6 @@
 
 A simple function to generate types based on function invocations.
 
-
 ## Installation
 
 ```bash
@@ -40,7 +39,7 @@ myFunction(1, 2)
 npx derive-type node main.js
 ```
 
-This will generate the [TypeScript](https://www.typescriptlang.org/) definition and insert the [JSDoc](https://jsdoc.app/) snippet 
+This will generate the [TypeScript](https://www.typescriptlang.org/) definition and insert the [JSDoc](https://jsdoc.app/) snippet
 
 ```js
 // main.js
