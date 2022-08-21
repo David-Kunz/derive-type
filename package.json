@@ -24,5 +24,8 @@
   "bugs": {
     "url": "https://github.com/David-Kunz/derive-type/issues"
   },
-  "homepage": "https://github.com/David-Kunz/derive-type#readme"
+  "homepage": "https://github.com/David-Kunz/derive-type#readme",
+  "devDependencies": {
+    "jest": "28.1.3"
+  }
 }

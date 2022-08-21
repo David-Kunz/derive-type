@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const dbg = (...args) =>
-  process.env.DEBUG_DERIVE_TYPE ? console.log(...args) : {}
+  process.env.DERIVE_TYPE_DEBUG ? console.log(...args) : {}
 
 const { exec } = require('child_process')
 const os = require('os')
@@ -29,12 +29,21 @@ function initializeFilesystem() {
 
 function shapeToTSType(shape, root) {
   if (Array.isArray(shape)) {
-    let res = '('
-    for (const item of shape) {
-      res = res + shapeToTSType(item) + ','
+    if (root) {
+      let res = 'export type GEN = ('
+      shape.forEach((s, idx) => {
+        res = res + `arg${idx}:${shapeToTSType(s)},`
+      })
+      res = res.slice(0, -1) + ') => any'
+      return res
+    } else {
+      let res = '('
+      for (const item of shape) {
+        res = res + shapeToTSType(item) + ','
+      }
+      res = res.slice(0, -1) + ')[]'
+      return res
     }
-    res = res.slice(0, -1) + ')[]'
-    return res
   }
   if (typeof shape === 'object' && OPTION in shape) {
     return shapeToTSType(shape[OPTION])
@@ -48,25 +57,17 @@ function shapeToTSType(shape, root) {
     return res
   }
   if (typeof shape === 'object') {
-    if (root) {
-      const res = []
-      for (const key in shape) {
-        res.push(`export type ${key} = ${shapeToTSType(shape[key])}`)
-      }
-      return res.join('\n')
-    } else {
-      let res = '{'
-      for (const key in shape) {
-        const quote = root ? '' : '"'
-        res =
-          res +
-          `${quote}${key}${quote}${
-            typeof shape[key] === 'object' && OPTION in shape[key] ? '?' : ''
-          }: ${shapeToTSType(shape[key])},`
-      }
-      res = res.slice(0, -1) + '}'
-      return res
+    let res = '{'
+    for (const key in shape) {
+      const quote = root ? '' : '"'
+      res =
+        res +
+        `${quote}${key}${quote}${
+          typeof shape[key] === 'object' && OPTION in shape[key] ? '?' : ''
+        }: ${shapeToTSType(shape[key])},`
     }
+    res = res.slice(0, -1) + '}'
+    return res
   }
   return shape
 }
@@ -110,13 +111,56 @@ function merge(root, obj) {
           }
         } else {
           //  two objects need to be merged
-          throw new Erro('merging object with union not yet supported')
+          throw new Error('merging object with union not yet supported')
         }
       }
   }
 }
 
-function main(args) {
+function _main(cb) {
+  dbg('### Generating types')
+  const files = fs.readdirSync(DERIVE_TYPE_GEN_FOLDER)
+  files.forEach((file) => {
+    const decoded = decodeFromFileName(file)
+    const [fileName, line, column] = decoded
+      .slice(1, decoded.length - 1)
+      .split(':')
+    const meta = { fileName, line: Number(line), column: Number(column) }
+    dbg(meta)
+    const filePath = path.join(DERIVE_TYPE_GEN_FOLDER, file)
+    const content = fs.readFileSync(filePath, 'utf8').split('\n').slice(0, -1)
+    const unique = [...new Set(content)].map((s) => JSON.parse(s))
+    dbg('unique:', JSON.stringify(unique))
+    const root = unique[0]
+    for (let i = 1; i < unique.length; i++) {
+      merge(root, unique[i])
+    }
+    dbg('merged:', JSON.stringify(root))
+    const res = shapeToTSType(root, true)
+    dbg()
+    dbg('####### Definition file #######')
+    dbg(res)
+    dbg('###############################')
+    dbg()
+    const typeDef = `/** @type { import("${filePath}").GEN } Generated */`
+    if (cb) {
+      cb({ typeDef, res })
+      return
+    }
+
+    const typeDefFilePath = filePath + '.d.ts'
+    fs.writeFileSync(typeDefFilePath, res)
+    const fileCont = fs.readFileSync(meta.fileName, 'utf8').split('\n')
+    let rmLine = 0
+    if (meta.line >= 3 && fileCont[meta.line - 3].startsWith('/**')) rmLine = 1
+    fileCont.splice(meta.line - 2 - rmLine, rmLine, typeDef)
+    fs.writeFileSync(meta.fileName, fileCont.join('\n'))
+    dbg()
+    dbg()
+  })
+}
+
+function main() {
   const runtimeArgs = process.argv.slice(2)
   dbg('runtime arguments:', runtimeArgs)
   initializeFilesystem()
@@ -133,67 +177,7 @@ function main(args) {
     }
 
     console.log(stdout)
-
-    dbg('### Generating types')
-    const files = fs.readdirSync(DERIVE_TYPE_GEN_FOLDER)
-    files.forEach((file) => {
-      const decoded = decodeFromFileName(file)
-      const [fileName, line, column] = decoded
-        .slice(1, decoded.length - 1)
-        .split(':')
-      const meta = { fileName, line: Number(line), column: Number(column) }
-      dbg(meta)
-      const filePath = path.join(DERIVE_TYPE_GEN_FOLDER, file)
-      const content = fs.readFileSync(filePath, 'utf8').split('\n').slice(0, -1)
-      const unique = [...new Set(content)].map((s) => JSON.parse(s))
-      dbg('unique:', JSON.stringify(unique))
-      const root = unique[0]
-      for (let i = 1; i < unique.length; i++) {
-        merge(root, unique[i])
-      }
-      dbg('merged:', JSON.stringify(root))
-      const res = shapeToTSType(root, true)
-      const typeDefFilePath = filePath + '.d.ts'
-      dbg()
-      dbg('####### Definition file #######')
-      dbg(res)
-      dbg('###############################')
-      dbg()
-      fs.writeFileSync(typeDefFilePath, res)
-
-      const fileCont = fs.readFileSync(meta.fileName, 'utf8').split('\n')
-      let rmLine = 0
-      let count = 1
-      let i = meta.line - 3
-      for (let i = meta.line - 3; i >= 0; i--) {
-        if (fileCont[i].startsWith('/**')) {
-          rmLine = count
-          break
-        }
-        if (
-          !fileCont[i].startsWith('*/') &&
-          !fileCont[i].startsWith('* @param')
-        ) {
-          break
-        }
-        count = count + 1
-      }
-      const statements = ['/**']
-      for (const param in root) {
-        const optional =
-          typeof root[param] === 'object' && OPTION in root[param]
-        statements.push(
-          `* @param ${optional ? '[' : ''}${param}${
-            optional ? ']' : ''
-          } {import("${filePath}").${param}} Generated`
-        )
-      }
-      statements.push('*/')
-      fileCont.splice(meta.line - 2 - rmLine, rmLine, statements.join('\n'))
-      fs.writeFileSync(meta.fileName, fileCont.join('\n'))
-      dbg()
-      dbg()
-    })
+    _main()
   })
 }
 
@@ -232,36 +216,23 @@ function decodeFromFileName(fileName) {
   return Buffer.from(fileName, 'base64').toString()
 }
 
-const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/gm
-const ARGUMENT_NAMES = /([^\s,]+)/g
-function getParamNames(func) {
-  const fnStr = func.toString().replace(STRIP_COMMENTS, '')
-  const result = fnStr
-    .slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')'))
-    .match(ARGUMENT_NAMES)
-  if (result === null) return []
-  return result
-}
-
-function deriveType(fn, arg) {
+function deriveType(...arg) {
   const args = Array.from(arg)
-  dbg('deriving types for', fn, args)
   const stack = new Error().stack
   const [_x, _y, locationInfo] = stack.split('\n')[2].trim().split(' ')
-  const params = getParamNames(fn)
-  dbg('params', params)
-  const paramShapes = {}
-  for (let i = 0; i < args.length; i++) {
-    paramShapes[params[i]] = argumentToShape(args[i])
-  }
+  const argShapes = args.map((a) => argumentToShape(a))
   const filePath = path.join(
     DERIVE_TYPE_GEN_FOLDER,
     encodeToFilename(locationInfo)
   )
   dbg('Appending file', filePath)
 
-  fs.appendFileSync(filePath, JSON.stringify(paramShapes) + '\n')
+  fs.appendFileSync(filePath, JSON.stringify(argShapes) + '\n')
 }
+
+// For debugging/tests
+deriveType._main = _main
+deriveType._init = initializeFilesystem
 
 // TODO:
 // - cycle detection objects
