@@ -3,7 +3,7 @@
 const dbg = (...args) =>
   process.env.DERIVE_TYPE_DEBUG ? console.log(...args) : {}
 
-const { exec } = require('child_process')
+const { spawn } = require('child_process')
 const os = require('os')
 const path = require('path')
 const fs = require('fs')
@@ -230,20 +230,8 @@ function main() {
   dbg('runtime arguments:', runtimeArgs)
   initializeFilesystem()
 
-  exec(runtimeArgs.join(' '), (error, stdout, stderr) => {
-    if (error) {
-      dbg("erooooooooor")
-      console.error(error.message)
-      return
-    }
-
-    if (stderr) {
-      dbg("stdeeeeeeerrr")
-      console.error(stderr)
-    }
-
-    console.log(stdout)
-    dbg("running main")
+  const ls = spawn(runtimeArgs[0], runtimeArgs.slice(1), { stdio: 'inherit' })
+  ls.on('close', (code) => {
     _main()
   })
 }
