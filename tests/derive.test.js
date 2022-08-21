@@ -35,6 +35,18 @@ describe('derive types', () => {
       })
     })
 
+    test('function', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn(() => { console.log('foo') })
+
+      dt._main(({ res }) => {
+        expect(res).toEqual('export type GEN = (arg0: any) => any')
+        done()
+      })
+    })
+
     test('boolean', (done) => {
       function simpleFn(x) {
         dt(x)

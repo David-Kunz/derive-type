@@ -228,7 +228,7 @@ function _main(cb) {
 function main() {
   const runtimeArgs = process.argv.slice(2)
   if (runtimeArgs[0] === '--version' || runtimeArgs[0] === '-v') {
-    console.log('Derive-Type Version 0.0.6')
+    console.log('Derive-Type Version 0.0.7')
     return
   }
   dbg('runtime arguments:', runtimeArgs)
@@ -265,6 +265,7 @@ function setIdentifier(obj) {
 function argumentToShape(arg, root, objCache = new WeakSet()) {
   if (arg === null) return 'null'
   if (arg === undefined) return 'undefined'
+  if (typeof arg === 'function') return 'any' // not supported
   if (typeof arg === 'number') return 'number'
   if (typeof arg === 'boolean') return 'boolean'
   if (typeof arg === 'string') return 'string'
