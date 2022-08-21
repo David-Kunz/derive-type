@@ -542,6 +542,20 @@ describe('derive types', () => {
       })
     })
 
+    test('2 numbers', (done) => {
+      function simpleFn(x, y) {
+        dt(x, y)
+      }
+      simpleFn(1, 2)
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: number, arg1: number) => any'
+        )
+        done()
+      })
+    })
+
     test('arguments 2 number,string,boolean', (done) => {
       function simpleFn(x, y, z) {
         dt(...arguments)

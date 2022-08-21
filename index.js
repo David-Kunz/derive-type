@@ -232,16 +232,18 @@ function main() {
 
   exec(runtimeArgs.join(' '), (error, stdout, stderr) => {
     if (error) {
+      dbg("erooooooooor")
       console.error(error.message)
       return
     }
 
     if (stderr) {
+      dbg("stdeeeeeeerrr")
       console.error(stderr)
-      return
     }
 
     console.log(stdout)
+    dbg("running main")
     _main()
   })
 }
@@ -290,10 +292,11 @@ function argumentToShape(arg, root, objCache = new WeakSet()) {
         res.push(argumentToShape(a, root, objCache))
       }
     }
-    const result = [...new Set(res)]
     if (root) {
-      setIdentifier(result)
+      setIdentifier(res)
+      return res // do not merge for arguments
     }
+    const result = [...new Set(res)]
     return result
   }
   if (typeof arg === 'object') {
@@ -329,6 +332,7 @@ function decodeFromFileName(fileName) {
 }
 
 function deriveType(...arg) {
+  console.log('>>>>>>>>>>>>>>>>>', arg)
   const args = Array.from(arg)
   const stack = new Error().stack
   const [_x, _y, locationInfo] = stack.split('\n')[2].trim().split(' ')
