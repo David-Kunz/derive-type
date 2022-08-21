@@ -8,20 +8,20 @@ const os = require('os')
 const path = require('path')
 const fs = require('fs')
 
-const DERIVE_TYPE_GEN_FOLDER =
+const DERIVE_TYPE_FOLDER =
   process.env.DERIVE_TYPE_FOLDER || path.join(os.tmpdir(), 'derive-type-gen')
 const UNION = '___union'
 const OPTION = '___option'
 
 function initializeFilesystem() {
   dbg('### Initialize')
-  if (!fs.existsSync(DERIVE_TYPE_GEN_FOLDER)) {
-    dbg('Creating directory', DERIVE_TYPE_GEN_FOLDER)
-    fs.mkdirSync(DERIVE_TYPE_GEN_FOLDER)
+  if (!fs.existsSync(DERIVE_TYPE_FOLDER)) {
+    dbg('Creating directory', DERIVE_TYPE_FOLDER)
+    fs.mkdirSync(DERIVE_TYPE_FOLDER)
   }
-  const files = fs.readdirSync(DERIVE_TYPE_GEN_FOLDER)
+  const files = fs.readdirSync(DERIVE_TYPE_FOLDER)
   files.forEach((file) => {
-    const filePath = path.join(DERIVE_TYPE_GEN_FOLDER, file)
+    const filePath = path.join(DERIVE_TYPE_FOLDER, file)
     dbg('Deleting file', filePath)
     fs.unlinkSync(filePath)
   })
@@ -136,7 +136,7 @@ function merge(root, obj) {
 
 function _main(cb) {
   dbg('### Generating types')
-  const files = fs.readdirSync(DERIVE_TYPE_GEN_FOLDER)
+  const files = fs.readdirSync(DERIVE_TYPE_FOLDER)
   const modLog = []
   const cache = new Map() // speedup and needed for tests since we don't change the original test files
   files.forEach((file) => {
@@ -146,7 +146,7 @@ function _main(cb) {
       .split(':')
     const meta = { fileName, line: Number(line), column: Number(column) }
     dbg(meta)
-    const filePath = path.join(DERIVE_TYPE_GEN_FOLDER, file)
+    const filePath = path.join(DERIVE_TYPE_FOLDER, file)
     const content = fs.readFileSync(filePath, 'utf8').split('\n').slice(0, -1)
     const unique = [...new Set(content)].map((s) => JSON.parse(s))
     dbg('unique:', JSON.stringify(unique))
@@ -264,7 +264,7 @@ function deriveType(...arg) {
   const [_x, _y, locationInfo] = stack.split('\n')[2].trim().split(' ')
   const argShapes = args.map((a) => argumentToShape(a))
   const filePath = path.join(
-    DERIVE_TYPE_GEN_FOLDER,
+    DERIVE_TYPE_FOLDER,
     encodeToFilename(locationInfo)
   )
   dbg('Appending file', filePath)
