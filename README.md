@@ -45,7 +45,7 @@ This will generate the [TypeScript](https://www.typescriptlang.org/) definition 
 ```js
 // main.js
 
-/** @type { import("/var/folders/ls/n94qrcfj6hq03gv146wsg4700000gp/T/derive-type-gen/KC9Vc2Vycy9kMDY1MDIzL3Byb2plY3RzL0Rldk9uRHV0eS9kZXJpdmUtdHlwZS10ZXN0L3Rlc3QuanM6NDoyNSk=").GEN } Generated */
+/** @type { import("/var/folders/ls/xxxx/T/derive-type-gen/KC9Vc2Vycy9kMDY1MDIzL3Byb2plY3RzL0Rldk9uRHV0eS9kZXJpdmUtdHlwZS10ZXN0L3Rlc3QuanM6NDoyNSk=").GEN } Generated */
 function myFunction(x, y) {
   require('derive-type')(...arguments) // <- ADD THIS
   // now you know that `x` and `y` are of type `number`
