@@ -268,16 +268,16 @@ function argumentToShape(arg, root, objCache = new WeakSet()) {
     const rootObj = arg.find(
       (a) => a && typeof a === 'object' && !Array.isArray(a)
     ) // TODO: Array of Array
-    const rootShape = rootObj && argumentToShape(rootObj, root, objCache)
+    const rootShape = rootObj && argumentToShape(rootObj, false, objCache)
     const res = []
     for (const a of arg) {
       if (rootObj && a && typeof a === 'object' && !Array.isArray(a)) {
         if (rootObj === a) res.push(rootShape)
         else {
-          merge(rootShape, argumentToShape(a, root, objCache))
+          merge(rootShape, argumentToShape(a, false, objCache))
         }
       } else {
-        res.push(argumentToShape(a, root, objCache))
+        res.push(argumentToShape(a, false, objCache))
       }
     }
     if (root) {
@@ -302,7 +302,7 @@ function argumentToShape(arg, root, objCache = new WeakSet()) {
         }
         shape[key] = 'cyclic:' + id
       } else {
-        shape[key] = argumentToShape(arg[key], root, objCache)
+        shape[key] = argumentToShape(arg[key], false, objCache)
       }
     }
     // Store the original object because it might be enriched with IDENTIFIER
@@ -320,7 +320,6 @@ function decodeFromFileName(fileName) {
 }
 
 function deriveType(...arg) {
-  console.log('>>>>>>>>>>>>>>>>>', arg)
   const args = Array.from(arg)
   const stack = new Error().stack
   const [_x, _y, locationInfo] = stack.split('\n')[2].trim().split(' ')
