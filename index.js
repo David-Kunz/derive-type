@@ -228,7 +228,7 @@ function _main(cb) {
 function main() {
   const runtimeArgs = process.argv.slice(2)
   if (runtimeArgs[0] === '--version' || runtimeArgs[0] === '-v') {
-    console.log('Derive-Type Version 0.0.5')
+    console.log('Derive-Type Version 0.0.6')
     return
   }
   dbg('runtime arguments:', runtimeArgs)
