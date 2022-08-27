@@ -9,6 +9,13 @@ const path = require('path')
 const fs = require('fs')
 const crypto = require('crypto')
 
+const SHAPE = {
+  plain: 'plain',
+  obj: 'obj',
+  array: 'array',
+  union: 'union',
+}
+
 const DERIVE_TYPE_FOLDER =
   process.env.DERIVE_TYPE_FOLDER || path.join(os.tmpdir(), 'derive-type-gen')
 // TODO: use symbols
@@ -33,20 +40,54 @@ function initializeFilesystem() {
 }
 
 function shapeToTSType(shape, root, cyclicShapes = new Map()) {
-  if (Array.isArray(shape)) {
+  if (shape.kind === SHAPE.array) {
+    let res = '('
+    for (const item of shape.value) {
+      res = res + shapeToTSType(item, false, cyclicShapes) + '|'
+    }
+    if (!shape.value.length) res = res + 'any|'
+    res = res.slice(0, -1) + ')[]'
+    if (shape.id) {
+      cyclicShapes.set(shape.id, res)
+    }
+    return res
+  }
+  if (shape.optional) {
+    // TODO, needed?
+    // let res = shapeToTSType(shape[OPTION], false, cyclicShapes)
+    // if (shape[IDENTIFIER]) {
+    //   cyclicShapes.set(shape[IDENTIFIER], res)
+    // }
+    // return res
+  }
+  if (shape.kind === SHAPE.union) {
+    let res = '('
+    for (const u of shape.value) {
+      res = res + shapeToTSType(u, false, cyclicShapes) + '|'
+    }
+    res = res.slice(0, -1) + ')'
+    if (!shape.value.length) res = 'any'
+    if (shape.id) {
+      cyclicShapes.set(shape.id, res)
+    }
+    return res
+  }
+  if (shape.kind === SHAPE.obj) {
     if (root) {
       let resGen = 'export type GEN = ('
-      shape.forEach((s, idx) => {
-        const optional = s && typeof s === 'object' && s[OPTION]
+      let hasKeys = false
+      for (const key in shape.value) {
+        hasKeys = true
+        // TODO
         resGen =
           resGen +
-          `arg${idx}${optional ? '?' : ''}: ${shapeToTSType(
-            s,
+          `${key}${shape.value[key].optional ? '?' : ''}: ${shapeToTSType(
+            shape.value[key],
             false,
             cyclicShapes
           )}, `
-      })
-      if (shape.length) resGen = resGen.slice(0, -2)
+      }
+      if (hasKeys) resGen = resGen.slice(0, -2)
       resGen = resGen + ') => any'
       let res = ''
       for (const [key, value] of cyclicShapes.entries()) {
@@ -54,126 +95,163 @@ function shapeToTSType(shape, root, cyclicShapes = new Map()) {
       }
       return res + resGen
     } else {
-      let res = '('
-      for (const item of shape) {
-        res = res + shapeToTSType(item, false, cyclicShapes) + '|'
+      // array or obj?
+      let res = '{'
+      let hasKeys = false
+      for (const key in shape.value) {
+        hasKeys = true
+        if (key === IDENTIFIER) continue // TODO: Still needed?
+        const quote = root ? '' : '"'
+        res =
+          res +
+          `${quote}${key}${quote}${
+            shape.value[key].optional ? '?' : ''
+          }: ${shapeToTSType(shape.value[key], false, cyclicShapes)}, `
       }
-      if (!shape.length) res = res + 'any|'
-      res = res.slice(0, -1) + ')[]'
-      if (shape[IDENTIFIER]) {
-        cyclicShapes.set(shape[IDENTIFIER], res)
+      if (hasKeys) res = res.slice(0, -2)
+      res = res + '}'
+      if (shape.id) {
+        cyclicShapes.set(shape.id, res)
       }
       return res
     }
   }
-  if (typeof shape === 'object' && OPTION in shape) {
-    let res = shapeToTSType(shape[OPTION], false, cyclicShapes)
-    if (shape[IDENTIFIER]) {
-      cyclicShapes.set(shape[IDENTIFIER], res)
-    }
-    return res
+  if (shape.kind === SHAPE.plain && shape.value.startsWith('cyclic:')) {
+    let res = shape.value.replace(/^cyclic:/, '')
+    return res.value
   }
-  if (typeof shape === 'object' && shape[UNION]) {
-    let res = '('
-    for (const u of shape[UNION]) {
-      res = res + shapeToTSType(u, false, cyclicShapes) + '|'
-    }
-    res = res.slice(0, -1) + ')'
-    if (!shape[UNION].length) res = 'any'
-    if (shape[IDENTIFIER]) {
-      cyclicShapes.set(shape[IDENTIFIER], res)
-    }
-    return res
-  }
-  if (typeof shape === 'object') {
-    let res = '{'
-    let hasKeys = false
-    for (const key in shape) {
-      hasKeys = true
-      if (key === IDENTIFIER) continue
-      const quote = root ? '' : '"'
-      res =
-        res +
-        `${quote}${key}${quote}${
-          typeof shape[key] === 'object' && OPTION in shape[key] ? '?' : ''
-        }: ${shapeToTSType(shape[key], false, cyclicShapes)}, `
-    }
-    if (hasKeys) res = res.slice(0, -2)
-    res = res + '}'
-    if (shape[IDENTIFIER]) {
-      cyclicShapes.set(shape[IDENTIFIER], res)
-    }
-    return res
-  }
-  if (typeof shape === 'string' && shape.startsWith('cyclic:')) {
-    let res = shape.replace(/^cyclic:/, '')
-    return res
-  }
-  return shape
+  return shape.value
 }
 
-function merge(root, obj) {
-  for (const key in root) {
-    if (!(key in obj)) {
-      if (typeof key !== 'string' || !key.startsWith('cyclic:'))
-        root[key] = { [OPTION]: root[key] }
+function mergeArray(arr) {
+  let mergedArray
+  if (!arr.length) mergedArray = [{ kind: SHAPE.plain, value: 'any' }]
+  // if there's an `any` element, the whole array is of type `any`)
+  else if (arr.some((x) => x.kind === SHAPE.plain && x.value === 'any'))
+    mergedArray = [{ kind: SHAPE.plain, value: 'any' }]
+  else
+    mergedArray = arr
+      .flatMap((x) => {
+        return x.kind === SHAPE.union ? x.value : [x] // unfold unions
+      })
+      .reduce((r, c) => {
+        if (
+          c.kind === SHAPE.plain &&
+          r.some((x) => x.kind === SHAPE.plain && x.value === c.value)
+        )
+          return r
+        if (c.kind === SHAPE.obj) {
+          const existingObj = r.find((x) => x.kind === SHAPE.obj)
+          if (!existingObj) {
+            r.push(c)
+            return r
+          }
+          r.push(merge(c, existingObj))
+          return r
+        }
+        if (c.kind === SHAPE.array) {
+          // TODO: How to handle arrays in arrays?
+        }
+        r.push(c)
+        return r
+      }, [])
+  return { kind: SHAPE.array, value: mergedArray }
+}
+
+function merge(root, other) {
+  if (root.kind === SHAPE.plain && other.kind === SHAPE.plain) {
+    if (root.value === other.value) return root
+    return { kind: SHAPE.union, value: [root, other] }
+  }
+  if (root.kind === SHAPE.plain && other.kind !== SHAPE.plain) {
+    return { kind: SHAPE.union, value: [root, other] }
+  }
+  if (root.kind !== SHAPE.plain && other.kind === SHAPE.plain) {
+    return merge(other, root) // symmetrical case
+  }
+  if (root.kind === SHAPE.obj && other.kind === SHAPE.obj) {
+    const merged = {}
+    for (const key in root.value) {
+      if (!(key in other.value)) {
+        root.value[key].optional = true
+        merged[key] = root.value[key]
+      } else {
+        merged[key] = merge(root.value[key], other.value[key])
+      }
     }
-  }
-  for (const key in obj) {
-    if (!(key in root)) {
-      if (typeof key === 'string' && key.startsWith('cyclic:'))
-        root[key] = obj[key]
-      else root[key] = { [OPTION]: obj[key] }
-    } else if (typeof root[key] === 'string') {
-      if (obj[key] === root[key]) {
-        // nothing to do
-      } else {
-        root[key] = { [UNION]: [root[key], obj[key]] }
+    for (const key in other.value) {
+      if (!(key in root.value)) {
+        other.value[key].optional = true
+        merged[key] = other.value[key]
       }
-    } else if (typeof root[key] === 'object')
-      if (!root[key][UNION]) {
-        if (typeof obj[key] === 'object') {
-          if (Array.isArray(obj[key])) {
-            if (Array.isArray(root[key])) {
-              const combined = [...root[key], ...obj[key]]
-              const rootObj = combined.find((c) => c && typeof c === 'object')
-              const res = []
-              for (const c of combined) {
-                if (c === rootObj) res.push(c)
-                else if (c && typeof c === 'object') merge(rootObj, c)
-                else res.push(c)
-              }
-              root[key] = [...new Set(res)]
-            } else {
-              root[key] = { [UNION]: [root[key], obj[key]] }
-            }
-          } else if (Array.isArray(root[key])) {
-            root[key] = { [UNION]: [root[key], obj[key]] }
-          } else merge(root[key], obj[key])
-        } else {
-          root[key] = { [UNION]: [root[key], obj[key]] }
-        }
-      } else {
-        if (typeof obj[key] === 'string') {
-          if (root[key][UNION].includes(obj[key])) {
-            // nothing to do
-          } else {
-            // todo: merge, check for object
-            root[key][UNION].push(obj[key])
-          }
-        } else {
-          //  two objects need to be merged, can also be array
-          const rootObj = root[key][UNION].find(
-            (u) => u && typeof u === 'object'
-          )
-          if (rootObj) {
-            merge(rootObj, obj[key])
-          } else {
-            root[key][UNION].push(obj[key])
-          }
-        }
-      }
+    }
+    return { kind: SHAPE.obj, value: merged }
   }
+  if (root.kind === SHAPE.array && other.kind === SHAPE.array) {
+    return mergeArray([...root.value, ...other.value])
+  }
+  // // TODO: Beter handling of OPTION
+  // for (const key in root) {
+  //   if (!(key in obj)) {
+  //     if (typeof key !== 'string' || !key.startsWith('cyclic:'))
+  //       root[key] = { [OPTION]: root[key] }
+  //   }
+  // }
+  // for (const key in obj) {
+  //   if (!(key in root)) {
+  //     if (typeof key === 'string' && key.startsWith('cyclic:'))
+  //       root[key] = obj[key]
+  //     else root[key] = { [OPTION]: obj[key] }
+  //   } else if (typeof root[key] === 'string') {
+  //     if (obj[key] === root[key]) {
+  //       // nothing to do
+  //     } else {
+  //       root[key] = { [UNION]: [root[key], obj[key]] }
+  //     }
+  //   } else if (typeof root[key] === 'object')
+  //     if (!root[key][UNION]) {
+  //       if (typeof obj[key] === 'object') {
+  //         if (Array.isArray(obj[key])) {
+  //           if (Array.isArray(root[key])) {
+  //             const combined = [...root[key], ...obj[key]]
+  //             const rootObj = combined.find((c) => c && typeof c === 'object')
+  //             const res = []
+  //             for (const c of combined) {
+  //               if (c === rootObj) res.push(c)
+  //               else if (c && typeof c === 'object') merge(rootObj, c)
+  //               else res.push(c)
+  //             }
+  //             root[key] = [...new Set(res)]
+  //           } else {
+  //             root[key] = { [UNION]: [root[key], obj[key]] }
+  //           }
+  //         } else if (Array.isArray(root[key])) {
+  //           root[key] = { [UNION]: [root[key], obj[key]] }
+  //         } else merge(root[key], obj[key])
+  //       } else {
+  //         root[key] = { [UNION]: [root[key], obj[key]] }
+  //       }
+  //     } else {
+  //       if (typeof obj[key] === 'string') {
+  //         if (root[key][UNION].includes(obj[key])) {
+  //           // nothing to do
+  //         } else {
+  //           // todo: merge, check for object
+  //           root[key][UNION].push(obj[key])
+  //         }
+  //       } else {
+  //         //  two objects need to be merged, can also be array
+  //         const rootObj = root[key][UNION].find(
+  //           (u) => u && typeof u === 'object'
+  //         )
+  //         if (rootObj) {
+  //           merge(rootObj, obj[key])
+  //         } else {
+  //           root[key][UNION].push(obj[key])
+  //         }
+  //       }
+  //     }
+  // }
 }
 
 function _main(cb) {
@@ -192,12 +270,12 @@ function _main(cb) {
     const content = fs.readFileSync(filePath, 'utf8').split('\n').slice(0, -1)
     const unique = [...new Set(content)].map((s) => JSON.parse(s))
     dbg('unique:', JSON.stringify(unique))
-    const root = unique[0]
+    let merged = unique[0]
     for (let i = 1; i < unique.length; i++) {
-      merge(root, unique[i])
+      merged = merge(merged, unique[i])
     }
-    dbg('merged:', JSON.stringify(root))
-    const res = shapeToTSType(root, true)
+    dbg('merged:', JSON.stringify(merged))
+    const res = shapeToTSType(merged, true)
     dbg()
     dbg('####### Definition file #######')
     dbg(res)
@@ -257,52 +335,35 @@ function genId() {
 }
 
 function setIdentifier(obj) {
-  if (!obj) return obj
-  if (Array.isArray(obj)) return obj.forEach((o) => setIdentifier(o))
-  if (typeof obj === 'object') {
-    if (obj[ORIGINAL]) obj[IDENTIFIER] = obj[ORIGINAL][IDENTIFIER]
-    for (const key in obj) {
+  if (obj.kind === SHAPE.array)
+    return obj.value.forEach((o) => setIdentifier(o))
+  if (obj.kind === SHAPE.obj) {
+    if (obj.origin && obj.origin[IDENTIFIER]) obj.id = obj.origin[IDENTIFIER]
+    delete obj.origin
+    for (const key in obj.value) {
       if (key === IDENTIFIER) continue
-      setIdentifier(obj[key])
+      setIdentifier(obj.value[key])
     }
     return
   }
-  return obj
+  return
 }
 
 function argumentToShape(arg, root, objCache = new WeakSet()) {
-  if (arg === null) return 'null'
-  if (arg === undefined) return 'undefined'
-  if (typeof arg === 'function') return 'any' // not supported
-  if (typeof arg === 'number') return 'number'
-  if (typeof arg === 'boolean') return 'boolean'
-  if (typeof arg === 'string') return 'string'
+  if (arg === null) return { kind: SHAPE.plain, value: 'null' }
+  if (arg === undefined) return { kind: SHAPE.plain, value: 'undefined' }
+  if (typeof arg === 'function') return { kind: SHAPE.plain, value: 'Function' }
+  if (typeof arg === 'number') return { kind: SHAPE.plain, value: 'number' }
+  if (typeof arg === 'boolean') return { kind: SHAPE.plain, value: 'boolean' }
+  if (typeof arg === 'string') return { kind: SHAPE.plain, value: 'string' }
   if (Array.isArray(arg)) {
-    const rootObj = arg.find(
-      (a) => a && typeof a === 'object' && !Array.isArray(a)
-    ) // TODO: Array of Array
-    const rootShape = rootObj && argumentToShape(rootObj, false, objCache)
-    const res = []
-    for (const a of arg) {
-      if (rootObj && a && typeof a === 'object' && !Array.isArray(a)) {
-        if (rootObj === a) res.push(rootShape)
-        else {
-          merge(rootShape, argumentToShape(a, false, objCache))
-        }
-      } else {
-        res.push(argumentToShape(a, false, objCache))
-      }
-    }
-    if (root) {
-      setIdentifier(res)
-      return res // do not merge for arguments
-    }
-    const result = [...new Set(res)]
-    return result
+    const res = mergeArray(arg.map((a) => argumentToShape(a, false, objCache)))
+    return res
   }
   if (typeof arg === 'object') {
     objCache.add(arg)
     const shape = {}
+    // TODO: TypeScripty loop
     const sortedKeys = []
     for (key in arg) sortedKeys.push(key)
     sortedKeys.filter((k) => k !== IDENTIFIER).sort()
@@ -318,10 +379,13 @@ function argumentToShape(arg, root, objCache = new WeakSet()) {
         shape[key] = argumentToShape(arg[key], false, objCache)
       }
     }
-    // Store the original object because it might be enriched with IDENTIFIER
-    Object.defineProperty(shape, ORIGINAL, { value: arg, enumerable: false })
-    return shape
+    const res = { kind: SHAPE.obj, value: shape, origin: arg, id: null } // id will be set later and is used to reference cyclic deps
+    if (root) {
+      setIdentifier(res)
+    }
+    return res
   }
+  throw new Error('unkown type detected')
 }
 
 function encodeToFilename(obj) {
@@ -336,7 +400,11 @@ function deriveType(...arg) {
   const args = Array.from(arg)
   const stack = new Error().stack
   const [_x, _y, locationInfo] = stack.split('\n')[2].trim().split(' ')
-  const argShapes = argumentToShape(args, true)
+  const argsObj = {}
+  args.forEach((arg, idx) => {
+    argsObj['arg' + idx] = arg
+  })
+  const argShapes = argumentToShape(argsObj, true)
   const filePath = path.join(DERIVE_TYPE_FOLDER, encodeToFilename(locationInfo))
   dbg('Appending file', filePath)
 
@@ -349,10 +417,10 @@ deriveType._main = _main
 deriveType._init = initializeFilesystem
 
 // TODO:
-// - cycle detection objects
 // - file locks for concurrent append
 // - dedupe
 // - multiline functions
 // - multiple functions at once
+// - non-function types
 
 module.exports = deriveType

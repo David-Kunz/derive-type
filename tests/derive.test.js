@@ -44,7 +44,7 @@ describe('derive types', () => {
       })
 
       dt._main(({ res }) => {
-        expect(res).toEqual('export type GEN = (arg0: any) => any')
+        expect(res).toEqual('export type GEN = (arg0: Function) => any')
         done()
       })
     })
