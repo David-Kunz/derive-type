@@ -166,10 +166,10 @@ function mergeArray(arr) {
 function merge(root, other) {
   if (root.kind === SHAPE.plain && other.kind === SHAPE.plain) {
     if (root.value === other.value) return root
-    return { kind: SHAPE.union, value: [root, other] }
+    return { kind: SHAPE.union, value: mergeArray([root, other]) }
   }
   if (root.kind === SHAPE.plain && other.kind !== SHAPE.plain) {
-    return { kind: SHAPE.union, value: [root, other] }
+    return { kind: SHAPE.union, value: mergeArray([root, other]) }
   }
   if (root.kind !== SHAPE.plain && other.kind === SHAPE.plain) {
     return merge(other, root) // symmetrical case
@@ -193,16 +193,25 @@ function merge(root, other) {
     return { kind: SHAPE.obj, value: merged }
   }
   if (root.kind === SHAPE.array && other.kind === SHAPE.array) {
-    return { kind: SHAPE.array, value: mergeArray([...root.value, ...other.value]) }
+    return {
+      kind: SHAPE.array,
+      value: mergeArray([...root.value, ...other.value]),
+    }
   }
   if (root.kind === SHAPE.union && other.kind === SHAPE.union) {
-    return { kind: SHAPE.union, value: mergeArray([...root.value, ...other.value]) }
+    return {
+      kind: SHAPE.union,
+      value: mergeArray([...root.value, ...other.value]),
+    }
   }
   if (root.kind === SHAPE.union && other.kind !== SHAPE.union) {
-    return { kind: SHAPE.union, value: mergeArray([...root.value, other.value]) }
+    return {
+      kind: SHAPE.union,
+      value: mergeArray([...root.value, other.value]),
+    }
   }
   if (root.kind !== SHAPE.union && other.kind === SHAPE.union) {
-    return merge(other, root)// symmetrical case
+    return merge(other, root) // symmetrical case
   }
   throw new Error('TODO: Invalid state detected')
   // // TODO: Beter handling of OPTION
@@ -372,7 +381,10 @@ function argumentToShape(arg, root, objCache = new WeakSet()) {
   if (typeof arg === 'boolean') return { kind: SHAPE.plain, value: 'boolean' }
   if (typeof arg === 'string') return { kind: SHAPE.plain, value: 'string' }
   if (Array.isArray(arg)) {
-    const res = { kind: SHAPE.array, value: mergeArray(arg.map((a) => argumentToShape(a, false, objCache))) }
+    const res = {
+      kind: SHAPE.array,
+      value: mergeArray(arg.map((a) => argumentToShape(a, false, objCache))),
+    }
     return res
   }
   if (typeof arg === 'object') {

@@ -500,7 +500,7 @@ describe('derive types', () => {
 
       dt._main(({ res }) => {
         expect(res).toEqual(
-          'export type GEN = (arg0: (string|number|boolean)) => any'
+          'export type GEN = (arg0: (boolean|string|number)) => any'
         )
         done()
       })
