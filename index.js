@@ -52,14 +52,6 @@ function shapeToTSType(shape, root, cyclicShapes = new Map()) {
     }
     return res
   }
-  if (shape.optional) {
-    // TODO, needed?
-    // let res = shapeToTSType(shape[OPTION], false, cyclicShapes)
-    // if (shape[IDENTIFIER]) {
-    //   cyclicShapes.set(shape[IDENTIFIER], res)
-    // }
-    // return res
-  }
   if (shape.kind === SHAPE.union) {
     let res = '('
     for (const u of shape.value) {
@@ -131,12 +123,14 @@ function shapeToTSType(shape, root, cyclicShapes = new Map()) {
 
 function mergeArray(arr) {
   if (!arr.length) return [{ kind: SHAPE.plain, value: 'any' }]
-  // const innerArrayValues = arr.filter((x) => x.kind === SHAPE.array).map(a => a.value)
 
   // if there's an `any` element, the whole array is of type `any`)
   let combinedInnerArray
 
-  if (arr.length === 1 && arr.some((x) => x.kind === SHAPE.plain && x.value === 'any'))
+  if (
+    arr.length === 1 &&
+    arr.some((x) => x.kind === SHAPE.plain && x.value === 'any')
+  )
     return [{ kind: SHAPE.plain, value: 'any' }]
 
   return arr
@@ -229,68 +223,6 @@ function merge(root, other) {
     return merge(other, root) // symmetrical case
   }
   throw new Error('TODO: Invalid state detected')
-  // // TODO: Beter handling of OPTION
-  // for (const key in root) {
-  //   if (!(key in obj)) {
-  //     if (typeof key !== 'string' || !key.startsWith('cyclic:'))
-  //       root[key] = { [OPTION]: root[key] }
-  //   }
-  // }
-  // for (const key in obj) {
-  //   if (!(key in root)) {
-  //     if (typeof key === 'string' && key.startsWith('cyclic:'))
-  //       root[key] = obj[key]
-  //     else root[key] = { [OPTION]: obj[key] }
-  //   } else if (typeof root[key] === 'string') {
-  //     if (obj[key] === root[key]) {
-  //       // nothing to do
-  //     } else {
-  //       root[key] = { [UNION]: [root[key], obj[key]] }
-  //     }
-  //   } else if (typeof root[key] === 'object')
-  //     if (!root[key][UNION]) {
-  //       if (typeof obj[key] === 'object') {
-  //         if (Array.isArray(obj[key])) {
-  //           if (Array.isArray(root[key])) {
-  //             const combined = [...root[key], ...obj[key]]
-  //             const rootObj = combined.find((c) => c && typeof c === 'object')
-  //             const res = []
-  //             for (const c of combined) {
-  //               if (c === rootObj) res.push(c)
-  //               else if (c && typeof c === 'object') merge(rootObj, c)
-  //               else res.push(c)
-  //             }
-  //             root[key] = [...new Set(res)]
-  //           } else {
-  //             root[key] = { [UNION]: [root[key], obj[key]] }
-  //           }
-  //         } else if (Array.isArray(root[key])) {
-  //           root[key] = { [UNION]: [root[key], obj[key]] }
-  //         } else merge(root[key], obj[key])
-  //       } else {
-  //         root[key] = { [UNION]: [root[key], obj[key]] }
-  //       }
-  //     } else {
-  //       if (typeof obj[key] === 'string') {
-  //         if (root[key][UNION].includes(obj[key])) {
-  //           // nothing to do
-  //         } else {
-  //           // todo: merge, check for object
-  //           root[key][UNION].push(obj[key])
-  //         }
-  //       } else {
-  //         //  two objects need to be merged, can also be array
-  //         const rootObj = root[key][UNION].find(
-  //           (u) => u && typeof u === 'object'
-  //         )
-  //         if (rootObj) {
-  //           merge(rootObj, obj[key])
-  //         } else {
-  //           root[key][UNION].push(obj[key])
-  //         }
-  //       }
-  //     }
-  // }
 }
 
 function _main(cb) {
@@ -460,9 +392,7 @@ deriveType._init = initializeFilesystem
 
 // TODO:
 // - file locks for concurrent append
-// - dedupe
 // - multiline functions
-// - multiple functions at once
 // - non-function types
 
 module.exports = deriveType
