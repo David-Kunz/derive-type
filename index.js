@@ -156,7 +156,8 @@ function mergeArray(arr) {
           return r
         }
         if (c.kind === SHAPE.array) {
-          // TODO: How to handle arrays in arrays?
+          r.push({ kind: SHAPE.array, value: mergeArray(c.value) })
+          return r
         }
         r.push(c)
         return r
@@ -207,7 +208,7 @@ function merge(root, other) {
   if (root.kind === SHAPE.union && other.kind !== SHAPE.union) {
     return {
       kind: SHAPE.union,
-      value: mergeArray([...root.value, other.value]),
+      value: mergeArray([...root.value, other]),
     }
   }
   if (root.kind !== SHAPE.union && other.kind === SHAPE.union) {
