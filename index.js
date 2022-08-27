@@ -21,7 +21,6 @@ const DERIVE_TYPE_FOLDER =
 // TODO: use symbols
 const UNION = '___union'
 const OPTION = '___option'
-const IDENTIFIER = '___identifier'
 const CACHED = '___cached'
 const ORIGINAL = '___original'
 
@@ -92,7 +91,6 @@ function shapeToTSType(shape, root, cyclicShapes = new Map()) {
       let hasKeys = false
       for (const key in shape.value) {
         hasKeys = true
-        if (key === IDENTIFIER) continue // TODO: Still needed?
         const quote = root ? '' : '"'
         res =
           res +
@@ -307,22 +305,27 @@ function genId() {
   return 'CYCLE' + crypto.randomBytes(8).toString('hex')
 }
 
-function setIdentifier(obj) {
+function removeUnusedIds(obj) {
   if (obj.kind === SHAPE.obj) {
-    if (obj.origin && obj.origin[IDENTIFIER]) obj.id = obj.origin[IDENTIFIER]
+    if (obj.cache?.id) {
+      if (obj.cache.hasReferences) obj.id = obj.cache.id
+      delete obj.cache
+    }
     for (const key in obj.value) {
-      if (key === IDENTIFIER) continue
-      setIdentifier(obj.value[key])
+      removeUnusedIds(obj.value[key])
     }
   }
-  delete obj.origin
+  delete obj.cache
   if (obj.kind === SHAPE.array) {
-    return obj.value.forEach((o) => setIdentifier(o))
+    return obj.value.forEach((o) => removeUnusedIds(o))
   }
   return
 }
 
-function argumentToShape(arg, root, objCache = new WeakSet()) {
+function argumentToShape(arg, root, objCache = new Map()) {
+  if (typeof arg === 'object' && !objCache.has(arg)) {
+    objCache.set(arg, { id: genId(), hasReferences: false })
+  }
   if (arg === null) return { kind: SHAPE.plain, value: 'null' }
   if (arg === undefined) return { kind: SHAPE.plain, value: 'undefined' }
   if (typeof arg === 'function') return { kind: SHAPE.plain, value: 'Function' }
@@ -336,31 +339,29 @@ function argumentToShape(arg, root, objCache = new WeakSet()) {
     const res = {
       kind: SHAPE.array,
       value: mergeArray(arg.map((a) => argumentToShape(a, false, objCache))),
+      cache: objCache.get(arg),
     }
     return res
   }
   if (typeof arg === 'object') {
-    objCache.add(arg)
     const shape = {}
     // TODO: TypeScripty loop
     const sortedKeys = []
     for (key in arg) sortedKeys.push(key)
-    sortedKeys.filter((k) => k !== IDENTIFIER).sort()
+    sortedKeys.sort()
     for (const key of sortedKeys) {
       const sub = arg[key]
       if (sub && typeof sub === 'object' && objCache.has(sub)) {
-        const id = sub[IDENTIFIER] || genId()
-        if (!sub[IDENTIFIER]) {
-          sub[IDENTIFIER] = id
-        }
-        shape[key] = { kind: SHAPE.plain, value: 'cyclic:' + id }
+        const cache = objCache.get(sub)
+        cache.hasReferences = true
+        shape[key] = { kind: SHAPE.plain, value: 'cyclic:' + cache.id }
       } else {
         shape[key] = argumentToShape(arg[key], false, objCache)
       }
     }
-    const res = { kind: SHAPE.obj, value: shape, origin: arg, id: null } // id will be set later and is used to reference cyclic deps
+    const res = { kind: SHAPE.obj, value: shape, cache: objCache.get(arg) }
     if (root) {
-      setIdentifier(res)
+      removeUnusedIds(res)
     }
     return res
   }
