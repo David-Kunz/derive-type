@@ -113,6 +113,19 @@ describe('derive types', () => {
       })
     })
 
+    test('once defined, an empty array should be ignored', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([])
+      simpleFn([1])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual('export type GEN = (arg0: (number)[]) => any')
+        done()
+      })
+    })
+
     test('object with empty array', (done) => {
       function simpleFn(x) {
         dt(x)

@@ -135,10 +135,13 @@ function mergeArray(arr) {
 
   // if there's an `any` element, the whole array is of type `any`)
   let combinedInnerArray
-  if (arr.some((x) => x.kind === SHAPE.plain && x.value === 'any'))
+
+  if (arr.length === 1 && arr.some((x) => x.kind === SHAPE.plain && x.value === 'any'))
     return [{ kind: SHAPE.plain, value: 'any' }]
+
   return arr
     .flatMap((x) => {
+      if (x.kind === SHAPE.plain && x.value === 'any') return []
       return x.kind === SHAPE.union ? x.value : [x] // unfold unions
     })
     .reduce((r, c) => {
