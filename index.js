@@ -390,7 +390,7 @@ function argumentToShape(arg, root, objCache = new WeakSet()) {
         if (!sub[IDENTIFIER]) {
           sub[IDENTIFIER] = id
         }
-        shape[key] = 'cyclic:' + id
+        shape[key] = { kind: SHAPE.plain, value: 'cyclic:' + id }
       } else {
         shape[key] = argumentToShape(arg[key], false, objCache)
       }
