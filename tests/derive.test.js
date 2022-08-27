@@ -35,6 +35,30 @@ describe('derive types', () => {
       })
     })
 
+    test('bigint', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn(1n)
+
+      dt._main(({ res }) => {
+        expect(res).toEqual('export type GEN = (arg0: bigint) => any')
+        done()
+      })
+    })
+
+    test('date', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn(new Date())
+
+      dt._main(({ res }) => {
+        expect(res).toEqual('export type GEN = (arg0: Date) => any')
+        done()
+      })
+    })
+
     test('function', (done) => {
       function simpleFn(x) {
         dt(x)

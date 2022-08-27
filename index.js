@@ -329,6 +329,9 @@ function argumentToShape(arg, root, objCache = new WeakSet()) {
   if (typeof arg === 'number') return { kind: SHAPE.plain, value: 'number' }
   if (typeof arg === 'boolean') return { kind: SHAPE.plain, value: 'boolean' }
   if (typeof arg === 'string') return { kind: SHAPE.plain, value: 'string' }
+  if (typeof arg === 'symbol') return { kind: SHAPE.plain, value: 'symbol' }
+  if (typeof arg === 'bigint') return { kind: SHAPE.plain, value: 'bigint' }
+  if (arg instanceof Date) return { kind: SHAPE.plain, value: 'Date' }
   if (Array.isArray(arg)) {
     const res = {
       kind: SHAPE.array,
@@ -361,7 +364,7 @@ function argumentToShape(arg, root, objCache = new WeakSet()) {
     }
     return res
   }
-  const err = new Error('unkown type detected')
+  const err = new Error('unkown type detected' + typeof arg)
   err.arg = arg
   throw err
 }
