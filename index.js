@@ -222,7 +222,9 @@ function merge(root, other) {
   if (root.kind !== SHAPE.union && other.kind === SHAPE.union) {
     return merge(other, root) // symmetrical case
   }
-  throw new Error('TODO: Invalid state detected')
+  const err = new Error('TODO: Invalid state detected')
+  err.obj = [root, other]
+  throw errr
 }
 
 function _main(cb) {
@@ -281,7 +283,7 @@ function _main(cb) {
 }
 
 function main() {
-  const version = '0.0.92'
+  const version = '0.0.93'
   const runtimeArgs = process.argv.slice(2)
   if (runtimeArgs[0] === '--version' || runtimeArgs[0] === '-v') {
     console.log('Derive-Type Version', version)
@@ -359,7 +361,9 @@ function argumentToShape(arg, root, objCache = new WeakSet()) {
     }
     return res
   }
-  throw new Error('unkown type detected')
+  const err = new Error('unkown type detected')
+  err.arg = arg
+  throw err
 }
 
 function encodeToFilename(obj) {
