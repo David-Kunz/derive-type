@@ -118,19 +118,24 @@ function shapeToTSType(shape, root, cyclicShapes = new Map()) {
   }
   if (shape.kind === SHAPE.plain && shape.value.startsWith('cyclic:')) {
     let res = shape.value.replace(/^cyclic:/, '')
-    return res.value
+    if (shape.id) {
+      cyclicShapes.set(shape.id, res)
+    }
+    return res
+  }
+  if (shape.id) {
+    cyclicShapes.set(shape.id, res)
   }
   return shape.value
 }
 
 function mergeArray(arr) {
-  let mergedArray
-  if (!arr.length) mergedArray = [{ kind: SHAPE.plain, value: 'any' }]
+  if (!arr.length) return [{ kind: SHAPE.plain, value: 'any' }]
   // if there's an `any` element, the whole array is of type `any`)
   else if (arr.some((x) => x.kind === SHAPE.plain && x.value === 'any'))
-    mergedArray = [{ kind: SHAPE.plain, value: 'any' }]
+    return [{ kind: SHAPE.plain, value: 'any' }]
   else
-    mergedArray = arr
+    return arr
       .flatMap((x) => {
         return x.kind === SHAPE.union ? x.value : [x] // unfold unions
       })
@@ -141,12 +146,13 @@ function mergeArray(arr) {
         )
           return r
         if (c.kind === SHAPE.obj) {
-          const existingObj = r.find((x) => x.kind === SHAPE.obj)
-          if (!existingObj) {
+          const existingObjIdx = r.findIndex((x) => x.kind === SHAPE.obj)
+          if (existingObjIdx < 0) {
             r.push(c)
             return r
           }
-          r.push(merge(c, existingObj))
+          const existingObj = r[existingObjIdx]
+          r[existingObjIdx] = merge(c, existingObj)
           return r
         }
         if (c.kind === SHAPE.array) {
@@ -155,10 +161,10 @@ function mergeArray(arr) {
         r.push(c)
         return r
       }, [])
-  return { kind: SHAPE.array, value: mergedArray }
 }
 
 function merge(root, other) {
+  if (!root) debugger
   if (root.kind === SHAPE.plain && other.kind === SHAPE.plain) {
     if (root.value === other.value) return root
     return { kind: SHAPE.union, value: [root, other] }
@@ -188,8 +194,18 @@ function merge(root, other) {
     return { kind: SHAPE.obj, value: merged }
   }
   if (root.kind === SHAPE.array && other.kind === SHAPE.array) {
-    return mergeArray([...root.value, ...other.value])
+    return { kind: SHAPE.array, value: mergeArray([...root.value, ...other.value]) }
   }
+  if (root.kind === SHAPE.union && other.kind === SHAPE.union) {
+    return { kind: SHAPE.union, value: mergeArray([...root.value, ...other.value]) }
+  }
+  if (root.kind === SHAPE.union && other.kind !== SHAPE.union) {
+    return { kind: SHAPE.union, value: mergeArray([...root.value, other.value]) }
+  }
+  if (root.kind !== SHAPE.union && other.kind === SHAPE.union) {
+    return merge(other, root)// symmetrical case
+  }
+  throw new Error('TODO: Invalid state detected')
   // // TODO: Beter handling of OPTION
   // for (const key in root) {
   //   if (!(key in obj)) {
@@ -335,16 +351,16 @@ function genId() {
 }
 
 function setIdentifier(obj) {
-  if (obj.kind === SHAPE.array)
-    return obj.value.forEach((o) => setIdentifier(o))
   if (obj.kind === SHAPE.obj) {
     if (obj.origin && obj.origin[IDENTIFIER]) obj.id = obj.origin[IDENTIFIER]
-    delete obj.origin
     for (const key in obj.value) {
       if (key === IDENTIFIER) continue
       setIdentifier(obj.value[key])
     }
-    return
+  }
+  delete obj.origin
+  if (obj.kind === SHAPE.array) {
+    return obj.value.forEach((o) => setIdentifier(o))
   }
   return
 }
@@ -357,7 +373,7 @@ function argumentToShape(arg, root, objCache = new WeakSet()) {
   if (typeof arg === 'boolean') return { kind: SHAPE.plain, value: 'boolean' }
   if (typeof arg === 'string') return { kind: SHAPE.plain, value: 'string' }
   if (Array.isArray(arg)) {
-    const res = mergeArray(arg.map((a) => argumentToShape(a, false, objCache)))
+    const res = { kind: SHAPE.array, value: mergeArray(arg.map((a) => argumentToShape(a, false, objCache))) }
     return res
   }
   if (typeof arg === 'object') {
