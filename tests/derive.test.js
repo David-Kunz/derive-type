@@ -438,7 +438,7 @@ describe('derive types', () => {
 
       dt._main(({ res }) => {
         expect(res).toEqual(
-          'export type GEN = (arg0: (boolean|((({"foo": string, "optional"?: boolean}|boolean)|string)[])[])) => any'
+          'export type GEN = (arg0: (boolean|(({"foo": string, "optional"?: boolean}|string|boolean)[])[])) => any'
         )
         done()
       })

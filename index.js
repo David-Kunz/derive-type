@@ -131,37 +131,48 @@ function shapeToTSType(shape, root, cyclicShapes = new Map()) {
 
 function mergeArray(arr) {
   if (!arr.length) return [{ kind: SHAPE.plain, value: 'any' }]
+  // const innerArrayValues = arr.filter((x) => x.kind === SHAPE.array).map(a => a.value)
+
   // if there's an `any` element, the whole array is of type `any`)
-  else if (arr.some((x) => x.kind === SHAPE.plain && x.value === 'any'))
+  let combinedInnerArray
+  if (arr.some((x) => x.kind === SHAPE.plain && x.value === 'any'))
     return [{ kind: SHAPE.plain, value: 'any' }]
-  else
-    return arr
-      .flatMap((x) => {
-        return x.kind === SHAPE.union ? x.value : [x] // unfold unions
-      })
-      .reduce((r, c) => {
-        if (
-          c.kind === SHAPE.plain &&
-          r.some((x) => x.kind === SHAPE.plain && x.value === c.value)
-        )
-          return r
-        if (c.kind === SHAPE.obj) {
-          const existingObjIdx = r.findIndex((x) => x.kind === SHAPE.obj)
-          if (existingObjIdx < 0) {
-            r.push(c)
-            return r
-          }
-          const existingObj = r[existingObjIdx]
-          r[existingObjIdx] = merge(c, existingObj)
-          return r
-        }
-        if (c.kind === SHAPE.array) {
-          r.push({ kind: SHAPE.array, value: mergeArray(c.value) })
-          return r
-        }
-        r.push(c)
+  return arr
+    .flatMap((x) => {
+      return x.kind === SHAPE.union ? x.value : [x] // unfold unions
+    })
+    .reduce((r, c) => {
+      if (
+        c.kind === SHAPE.plain &&
+        r.some((x) => x.kind === SHAPE.plain && x.value === c.value)
+      )
         return r
-      }, [])
+      if (c.kind === SHAPE.obj) {
+        const existingObjIdx = r.findIndex((x) => x.kind === SHAPE.obj)
+        if (existingObjIdx < 0) {
+          r.push(c)
+          return r
+        }
+        const existingObj = r[existingObjIdx]
+        r[existingObjIdx] = merge(c, existingObj)
+        return r
+      }
+      if (c.kind === SHAPE.array) {
+        // TODO: Must be made recursive?
+        if (!combinedInnerArray) {
+          combinedInnerArray = { kind: SHAPE.array, value: mergeArray(c.value) }
+          r.push(combinedInnerArray)
+        } else {
+          combinedInnerArray.value = mergeArray([
+            ...combinedInnerArray.value,
+            ...c.value,
+          ])
+        }
+        return r
+      }
+      r.push(c)
+      return r
+    }, [])
 }
 
 function merge(root, other) {
