@@ -18,11 +18,6 @@ const SHAPE = {
 
 const DERIVE_TYPE_FOLDER =
   process.env.DERIVE_TYPE_FOLDER || path.join(os.tmpdir(), 'derive-type-gen')
-// TODO: use symbols
-const UNION = '___union'
-const OPTION = '___option'
-const CACHED = '___cached'
-const ORIGINAL = '___original'
 
 function initializeFilesystem() {
   dbg('### Initialize')
