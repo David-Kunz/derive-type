@@ -244,6 +244,20 @@ describe('derive types', () => {
       })
     })
 
+    test('array of objects with reverse optional values', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      simpleFn([{ foo: 1, optional: true }, { foo: 2 }])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(
+          'export type GEN = (arg0: ({"foo": number, "optional"?: boolean})[]) => any'
+        )
+        done()
+      })
+    })
+
     test('array of different objects', (done) => {
       function simpleFn(x) {
         dt(x)
