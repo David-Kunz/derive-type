@@ -164,7 +164,6 @@ function mergeArray(arr) {
 }
 
 function merge(root, other) {
-  if (!root) debugger
   if (root.kind === SHAPE.plain && other.kind === SHAPE.plain) {
     if (root.value === other.value) return root
     return { kind: SHAPE.union, value: [root, other] }
