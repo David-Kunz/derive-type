@@ -215,7 +215,7 @@ describe('derive types', () => {
 
       dt._main(({ res }) => {
         expect(res).toEqual(
-          'export type GEN = (arg0: ({"foo"?: number, "bar"?: string})[]) => any'
+          'export type GEN = (arg0: ({"bar"?: string, "foo"?: number})[]) => any'
         )
         done()
       })
@@ -232,7 +232,7 @@ describe('derive types', () => {
 
       dt._main(({ res }) => {
         expect(res).toEqual(
-          'export type GEN = (arg0: ({"foo": number, "nested": {"b"?: string, "a"?: string}})[]) => any'
+          'export type GEN = (arg0: ({"foo": number, "nested": {"a"?: string, "b"?: string}})[]) => any'
         )
         done()
       })
@@ -325,7 +325,7 @@ describe('derive types', () => {
 
       dt._main(({ res }) => {
         expect(res).toEqual(
-          'export type GEN = (arg0: ({"foo"?: string, "xxx"?: string, "optional"?: boolean, "yyy"?: string})[]) => any'
+          'export type GEN = (arg0: ({"yyy"?: string, "optional"?: boolean, "foo"?: string, "xxx"?: string})[]) => any'
         )
         done()
       })
