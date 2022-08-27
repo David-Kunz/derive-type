@@ -5,7 +5,7 @@ A simple function to generate types based on function invocations.
 ## Installation
 
 ```bash
-npm i derive-type
+npm i -D derive-type
 ```
 
 ## Simple Example
