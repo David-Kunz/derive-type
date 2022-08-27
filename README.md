@@ -41,7 +41,7 @@ Then invoke the binary with the code to trigger the function invocations:
 npx derive-type node main.js
 ```
 
-This will generate the [TypeScript](https://www.typescriptlang.org/) definition and insert the [JSDoc](https://jsdoc.app/) snippet
+This will generate the [TypeScript](https://www.typescriptlang.org/) definition and insert the [JSDoc](https://jsdoc.app/) snippet:
 
 ```js
 // main.js
