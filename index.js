@@ -317,9 +317,9 @@ function removeUnusedIds(obj) {
   return
 }
 
-function argumentToShape(arg, root, objCache = new Map()) {
+function argumentToShape(arg, root, objCache = new Map(), path = '') {
   if (typeof arg === 'object' && !objCache.has(arg)) {
-    objCache.set(arg, { id: genId(), hasReferences: false })
+    objCache.set(arg, { id: path, hasReferences: false })
   }
   if (arg === null) return { kind: SHAPE.plain, value: 'null' }
   if (arg === undefined) return { kind: SHAPE.plain, value: 'undefined' }
@@ -333,7 +333,7 @@ function argumentToShape(arg, root, objCache = new Map()) {
   if (Array.isArray(arg)) {
     const res = {
       kind: SHAPE.array,
-      value: mergeArray(arg.map((a) => argumentToShape(a, false, objCache))),
+      value: mergeArray(arg.map((a, idx) => argumentToShape(a, false, objCache, path + '$' + idx))),
       cache: objCache.get(arg),
     }
     return res
@@ -349,9 +349,9 @@ function argumentToShape(arg, root, objCache = new Map()) {
       if (sub && typeof sub === 'object' && objCache.has(sub)) {
         const cache = objCache.get(sub)
         cache.hasReferences = true
-        shape[key] = { kind: SHAPE.plain, value: 'cyclic:' + cache.id }
+        shape[key] = { kind: SHAPE.plain, value: cache.id }
       } else {
-        shape[key] = argumentToShape(arg[key], false, objCache)
+        shape[key] = argumentToShape(arg[key], false, objCache, `${path}$${key}`)
       }
     }
     const res = { kind: SHAPE.obj, value: shape, cache: objCache.get(arg) }

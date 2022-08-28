@@ -505,7 +505,7 @@ describe('derive types', () => {
 
       dt._main(({ res }) => {
         expect(res).toEqual(
-          expect.stringMatching(/{"a": number, "b": CYCLE.*}/)
+          expect.stringMatching(/{"a": number, "b": \$arg0}/)
         )
         done()
       })
@@ -520,7 +520,7 @@ describe('derive types', () => {
       simpleFn(obj)
 
       dt._main(({ res }) => {
-        expect(res).toEqual(expect.stringMatching(/"c": CYCLE/))
+        expect(res).toEqual(expect.stringMatching(/"c": \$arg0/))
         done()
       })
     })
@@ -535,8 +535,24 @@ describe('derive types', () => {
       simpleFn(obj)
 
       dt._main(({ res }) => {
-        expect(res).toEqual(expect.stringMatching(/"c": CYCLE/))
-        expect(res).toEqual(expect.stringMatching(/"d": CYCLE/))
+        expect(res).toEqual(expect.stringMatching(/"c": \$arg0/))
+        expect(res).toEqual(expect.stringMatching(/"d": \$arg0\$b/))
+        done()
+      })
+    })
+
+    test('cyclic objects in array', (done) => {
+      function simpleFn(x) {
+        dt(x)
+      }
+      const obj = { a: 1 }
+      obj.b = { c: obj }
+      obj.d = [obj.b]
+      simpleFn([obj])
+
+      dt._main(({ res }) => {
+        expect(res).toEqual(expect.stringMatching(/"c": \$arg0\$0/))
+        expect(res).toEqual(expect.stringMatching(/"d": \({"c": \$arg0\$0}\)\[\]/))
         done()
       })
     })
