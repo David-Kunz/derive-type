@@ -65,3 +65,6 @@ myFunction(1, 2)
 - The generated types are based on the merged input of all function invocations.
 - The generated types are located in `os.tmpdir()`, this can be changed through the environment variable `DERIVE_TYPE_FOLDER`.
 - Debugging output can be enabled by setting the environment variable `DERIVE_TYPE_DEBUG` to true.
+
+## Introduction Video
+[![](https://img.youtube.com/vi/gdz_X0b5SnM/0.jpg)](https://youtu.be/gdz_X0b5SnM")
