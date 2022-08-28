@@ -296,10 +296,6 @@ if (require.main === module) {
   main()
 }
 
-function genId() {
-  return 'CYCLE' + crypto.randomBytes(8).toString('hex')
-}
-
 function removeUnusedIds(obj) {
   if (obj.kind === SHAPE.obj) {
     if (obj.cache?.id) {
