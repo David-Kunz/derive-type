@@ -504,9 +504,7 @@ describe('derive types', () => {
       simpleFn(obj)
 
       dt._main(({ res }) => {
-        expect(res).toEqual(
-          expect.stringMatching(/{"a": number, "b": \$arg0}/)
-        )
+        expect(res).toEqual(expect.stringMatching(/{"a": number, "b": \$arg0}/))
         done()
       })
     })
@@ -552,7 +550,9 @@ describe('derive types', () => {
 
       dt._main(({ res }) => {
         expect(res).toEqual(expect.stringMatching(/"c": \$arg0\$0/))
-        expect(res).toEqual(expect.stringMatching(/"d": \({"c": \$arg0\$0}\)\[\]/))
+        expect(res).toEqual(
+          expect.stringMatching(/"d": \({"c": \$arg0\$0}\)\[\]/)
+        )
         done()
       })
     })

@@ -235,12 +235,12 @@ function _main(cb) {
     const filePath = path.join(DERIVE_TYPE_FOLDER, file)
     const content = fs.readFileSync(filePath, 'utf8').split('\n').slice(0, -1)
     const unique = [...new Set(content)].map((s) => JSON.parse(s))
-    dbg('unique:', JSON.stringify(unique))
+    if (process.env.DERIVE_TYPE_DEBUG) dbg('unique:', JSON.stringify(unique))
     let merged = unique[0]
     for (let i = 1; i < unique.length; i++) {
       merged = merge(merged, unique[i])
     }
-    dbg('merged:', JSON.stringify(merged))
+    if (process.env.DERIVE_TYPE_DEBUG) dbg('merged:', JSON.stringify(merged))
     const res = shapeToTSType(merged, true)
     dbg()
     dbg('####### Definition file #######')
@@ -329,7 +329,11 @@ function argumentToShape(arg, root, objCache = new Map(), path = '') {
   if (Array.isArray(arg)) {
     const res = {
       kind: SHAPE.array,
-      value: mergeArray(arg.map((a, idx) => argumentToShape(a, false, objCache, path + '$' + idx))),
+      value: mergeArray(
+        arg.map((a, idx) =>
+          argumentToShape(a, false, objCache, path + '$' + idx)
+        )
+      ),
       cache: objCache.get(arg),
     }
     return res
@@ -347,7 +351,12 @@ function argumentToShape(arg, root, objCache = new Map(), path = '') {
         cache.hasReferences = true
         shape[key] = { kind: SHAPE.plain, value: cache.id }
       } else {
-        shape[key] = argumentToShape(arg[key], false, objCache, `${path}$${key}`)
+        shape[key] = argumentToShape(
+          arg[key],
+          false,
+          objCache,
+          `${path}$${key}`
+        )
       }
     }
     const res = { kind: SHAPE.obj, value: shape, cache: objCache.get(arg) }
