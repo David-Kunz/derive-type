@@ -381,7 +381,7 @@ function decodeFromFileName(fileName) {
 function deriveType(...arg) {
   const args = Array.from(arg)
   const stack = new Error().stack
-  const [_x, _y, locationInfo] = stack.split('\n')[2].trim().split(' ')
+  const locationInfo = stack.split('\n')[2].match(/\(.*\)/)[0]
   const argsObj = {}
   args.forEach((arg, idx) => {
     argsObj['arg' + idx] = arg
