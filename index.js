@@ -7,8 +7,6 @@ const { spawn } = require('child_process')
 const os = require('os')
 const path = require('path')
 const fs = require('fs')
-const crypto = require('crypto')
-const { Function } = require('@shd101wyy/mume/out/src/utility')
 
 const SHAPE = {
   plain: 'plain',
