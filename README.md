@@ -1,6 +1,6 @@
 # Derive Type
 
-A simple function to generate types based on function invocations.
+A simple tool to generate [TypeScript](https://www.typescriptlang.org/) type definitions based on functions invocations and embed them as [JSDoc](https://jsdoc.app/) comments in your JavaScript code.
 
 ## Installation
 
@@ -58,7 +58,7 @@ myFunction(1, 2)
 
 ## Notes
 
-- The function invocations don't need to be in the same file, usally they are based on tests:
+- The function invocations don't need to be in the same file, usually they are based on tests:
   ```bash
   npx derive-type npm test
   ```
@@ -67,4 +67,5 @@ myFunction(1, 2)
 - Debugging output can be enabled by setting the environment variable `DERIVE_TYPE_DEBUG` to true.
 
 ## Introduction Video
+
 [![](https://img.youtube.com/vi/gdz_X0b5SnM/0.jpg)](https://youtu.be/gdz_X0b5SnM")

@@ -8,6 +8,7 @@ const os = require('os')
 const path = require('path')
 const fs = require('fs')
 const crypto = require('crypto')
+const { Function } = require('@shd101wyy/mume/out/src/utility')
 
 const SHAPE = {
   plain: 'plain',
@@ -313,6 +314,18 @@ function removeUnusedIds(obj) {
   return
 }
 
+function getSortedKeys(obj) {
+  const keys = []
+  let p = obj
+  while (p !== null && p !== Object.prototype && p !== Function.prototype) {
+    for (const k of Object.getOwnPropertyNames(p)) keys.push(k)
+    p = Object.getPrototypeOf(p)
+  }
+  const sortedKeys = Array.from(new Set(keys))
+  sortedKeys.sort()
+  return sortedKeys
+}
+
 function argumentToShape(arg, root, objCache = new Map(), path = '') {
   if (typeof arg === 'object' && !objCache.has(arg)) {
     objCache.set(arg, { id: path, hasReferences: false })
@@ -341,9 +354,7 @@ function argumentToShape(arg, root, objCache = new Map(), path = '') {
   if (typeof arg === 'object') {
     const shape = {}
     // TODO: TypeScripty loop
-    const sortedKeys = []
-    for (key in arg) sortedKeys.push(key)
-    sortedKeys.sort()
+    const sortedKeys = getSortedKeys(arg)
     for (const key of sortedKeys) {
       const sub = arg[key]
       if (sub && typeof sub === 'object' && objCache.has(sub)) {
