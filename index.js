@@ -222,7 +222,7 @@ function merge(root, other) {
 function _main(cb) {
   dbg('### Generating types')
   const files = fs.readdirSync(DERIVE_TYPE_FOLDER)
-  const modLog = []
+  const lineDeletionLocations = new Map() // stores removals per file
   const cache = new Map() // speedup and needed for tests since we don't change the original test files
   files.forEach((file) => {
     const decoded = decodeFromFileName(file)
@@ -253,15 +253,25 @@ function _main(cb) {
     const fileCont =
       cache.get(meta.fileName) ||
       fs.readFileSync(meta.fileName, 'utf8').split('\n')
-    let rmLine = 0
-    const adjustedLine = modLog.reduce((p, c) => {
-      if (p > c) return p + 1
-      return p
-    }, meta.line)
+    let hadTypeAnnotations = false
+    if (!lineDeletionLocations.has(meta.fileName))
+      lineDeletionLocations.set(meta.fileName, [])
+    const adjustedLine = lineDeletionLocations
+      .get(meta.fileName)
+      .reduce((p, c) => {
+        if (p > c) return p - 1
+        return p
+      }, meta.line)
     if (adjustedLine >= 3 && fileCont[adjustedLine - 3].startsWith('/**'))
-      rmLine = 1
-    fileCont.splice(adjustedLine - 2 - rmLine, rmLine, typeDef)
-    if (rmLine === 0) modLog.push(adjustedLine - 2)
+      hadTypeAnnotations = true
+    if (hadTypeAnnotations) {
+      fileCont.splice(adjustedLine - 3, 1, typeDef) // replace existing type annotation
+      fileCont.splice(adjustedLine - 1, 1) // remove derive-type function call
+      lineDeletionLocations.get(meta.fileName).push(adjustedLine - 1) // effectively removed one line, remember location
+    } else {
+      fileCont.splice(adjustedLine - 2, 0, typeDef) // insert type annotation
+      fileCont.splice(adjustedLine, 1) // remove derive-type function call
+    }
     cache.set(meta.fileName, fileCont)
     const modifiedFile = fileCont.join('\n')
     if (!cb) fs.writeFileSync(meta.fileName, modifiedFile)

@@ -42,8 +42,11 @@ describe('modify file', () => {
       )
       expect(modifiedFile).toEqual(
         expect.stringMatching(
-          /\/\/ comment\n\s*\/\*\* @type { import\(.*\)\.GEN } Generated \*\/\n\s*function simpleFn/
+          /\/\/ comment\n\s*\/\*\* @type { import\(.*\)\.GEN } Generated \*\/\n\s*function simpleFn/ // type annotation
         )
+      )
+      expect(modifiedFile).toEqual(
+        expect.stringMatching(/function simpleFn\(x\) {\n\s*}/) // removed dt(x) call in function
       )
       done()
     })
@@ -78,10 +81,19 @@ describe('modify file', () => {
             /\/\/ comment 1\n\s*\/\*\* @type { import\(.*\)\.GEN } Generated \*\/\n\s*function simpleFn\(/
           )
         )
+
+        expect(modifiedFile).toEqual(
+          expect.stringMatching(/function simpleFn\(x\) {\n\s*}/) // removed dt(x) call in function
+        )
+
         expect(modifiedFile).toEqual(
           expect.stringMatching(
             /\/\/ comment 2\n\s*\/\*\* @type { import\(.*\)\.GEN } Generated \*\/\n\s*function simpleFn2\(/
           )
+        )
+
+        expect(modifiedFile).toEqual(
+          expect.stringMatching(/function simpleFn2\(x\) {\n\s*}/) // removed dt(x) call in function
         )
         done()
       }
