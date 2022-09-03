@@ -100,13 +100,6 @@ function shapeToTSType(shape, root, cyclicShapes = new Map()) {
       return res
     }
   }
-  if (shape.kind === SHAPE.plain && shape.value.startsWith('cyclic:')) {
-    let res = shape.value.replace(/^cyclic:/, '')
-    if (shape.id) {
-      cyclicShapes.set(shape.id, res)
-    }
-    return res
-  }
   if (shape.id) {
     cyclicShapes.set(shape.id, res)
   }
@@ -262,7 +255,7 @@ function _main(cb) {
         if (p > c) return p - 1
         return p
       }, meta.line)
-    if (adjustedLine >= 3 && fileCont[adjustedLine - 3].startsWith('/**'))
+    if (adjustedLine >= 3 && fileCont[adjustedLine - 3].startsWith('/** @type { import('))
       hadTypeAnnotations = true
     if (hadTypeAnnotations) {
       fileCont.splice(adjustedLine - 3, 1, typeDef) // replace existing type annotation
@@ -285,7 +278,7 @@ function _main(cb) {
 }
 
 function main() {
-  const version = '0.0.995'
+  const version = '0.0.996'
   const runtimeArgs = process.argv.slice(2)
   if (runtimeArgs[0] === '--version' || runtimeArgs[0] === '-v') {
     console.log('Derive-Type Version', version)
