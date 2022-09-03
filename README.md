@@ -28,7 +28,7 @@ Add this function call at the top of your function body:
 // main.js
 
 function myFunction(x, y) {
-  require('derive-type')(...arguments) // <- ADD THIS
+  require('derive-type')(x, y) // <- ADD THIS
   console.log(x, y)
 }
 
