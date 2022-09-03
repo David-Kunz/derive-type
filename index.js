@@ -346,8 +346,8 @@ function argumentToShape(arg, root, objCache = new Map(), path = '') {
     const res = {
       kind: SHAPE.array,
       value: mergeArray(
-        arg.map((a, idx) =>
-          argumentToShape(a, false, objCache, path + '$' + idx.replace(/\./g, '')) // remove forbidden type characters
+        arg.map(
+          (a, idx) => argumentToShape(a, false, objCache, path + '$' + idx) // remove forbidden type characters
         )
       ),
       cache: objCache.get(arg),
@@ -369,7 +369,7 @@ function argumentToShape(arg, root, objCache = new Map(), path = '') {
           arg[key],
           false,
           objCache,
-          `${path}$${key}`
+          `${path}$${key.replace(/\./g, '')}`
         )
       }
     }
