@@ -347,7 +347,7 @@ function argumentToShape(arg, root, objCache = new Map(), path = '') {
       kind: SHAPE.array,
       value: mergeArray(
         arg.map((a, idx) =>
-          argumentToShape(a, false, objCache, path + '$' + idx)
+          argumentToShape(a, false, objCache, path + '$' + idx.replace(/\./g, '')) // remove forbidden type characters
         )
       ),
       cache: objCache.get(arg),
