@@ -65,6 +65,8 @@ myFunction(1, 2)
 - The generated types are based on the merged input of all function invocations.
 - The generated types are located in `os.tmpdir()`, this can be changed through the environment variable `DERIVE_TYPE_FOLDER`.
 - Debugging output can be enabled by setting the environment variable `DERIVE_TYPE_DEBUG` to true.
+- You can also install `derive-type` globally, then you must use the path of your global package, e.g. `require("/usr/local/lib/node_modules/derive-type/")`.
+- You can find some example type generations [in the test file](https://github.com/David-Kunz/derive-type/blob/main/tests/derive.test.js).
 
 ## Introduction Video
 
