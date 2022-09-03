@@ -1,6 +1,6 @@
 {
   "name": "derive-type",
-  "version": "0.0.99",
+  "version": "0.0.991",
   "description": "Derive types dynamically by running tests to capture value combinations",
   "main": "index.js",
   "scripts": {
