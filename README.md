@@ -2,6 +2,10 @@
 
 A simple tool to generate [TypeScript](https://www.typescriptlang.org/) type definitions based on functions invocations and embed them as [JSDoc](https://jsdoc.app/) comments in your JavaScript code.
 
+## Demo
+https://user-images.githubusercontent.com/1009936/188266007-269ee08a-392c-4dfe-af80-444059ebba39.mov
+
+
 ## Installation
 
 ```bash
