@@ -314,14 +314,9 @@ function removeUnusedIds(obj) {
 
 function getSortedKeys(obj) {
   const keys = []
-  let p = obj
-  while (p !== null && p !== Object.prototype && p !== Function.prototype) {
-    for (const k of Object.getOwnPropertyNames(p)) keys.push(k)
-    p = Object.getPrototypeOf(p)
-  }
-  const sortedKeys = Array.from(new Set(keys))
-  sortedKeys.sort()
-  return sortedKeys
+  for (const key in obj) keys.push(key)
+  keys.sort()
+  return keys
 }
 
 function argumentToShape(arg, root, objCache = new Map(), path = '') {

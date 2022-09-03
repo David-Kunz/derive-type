@@ -99,20 +99,6 @@ describe('derive types', () => {
       })
     })
 
-    test('non-enumerable properties of object', (done) => {
-      function simpleFn(x) {
-        dt(x)
-      }
-      const obj = {}
-      Object.defineProperty(obj, 'x', { enumerable: false, value: 'foo' })
-      simpleFn(obj)
-
-      dt._main(({ res }) => {
-        expect(res).toEqual('export type GEN = (arg0: {"x": string}) => any')
-        done()
-      })
-    })
-
     test('nested object', (done) => {
       function simpleFn(x) {
         dt(x)
