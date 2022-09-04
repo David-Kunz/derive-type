@@ -286,7 +286,7 @@ function _main(cb) {
 }
 
 function main() {
-  const version = '0.0.997'
+  const version = '1.0'
   const runtimeArgs = process.argv.slice(2)
   if (runtimeArgs[0] === '--version' || runtimeArgs[0] === '-v') {
     console.log('Derive-Type Version', version)
