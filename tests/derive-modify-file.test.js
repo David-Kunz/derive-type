@@ -72,7 +72,7 @@ describe('modify file', () => {
         )
       )
       expect(modifiedFile).toEqual(
-        expect.stringMatching(/function multiLineFn\(x\)\n\s*{\n\s*}/) // removed dt(x) call in function
+        expect.stringMatching(/function multiLineFn\(x\)\s*{\n\s*}/) // removed dt(x) call in function
       )
       done()
     })

@@ -67,11 +67,11 @@ myFunction(1, 2)
   npx derive-type npm test
   ```
 - The generated types are based on the merged input of all function invocations.
-- If it's not an arrow function, you can also write `require('derive-type')(...arguments)`.
-- The generated types are located in `os.tmpdir()`, this can be changed through the environment variable `DERIVE_TYPE_FOLDER`.
 - The function definition must begin in a new line.
-- Debugging output can be enabled by setting the environment variable `DERIVE_TYPE_DEBUG` to true.
 - You can also install `derive-type` globally, then you must use the path of your global package, e.g. `require("/usr/local/lib/node_modules/derive-type/")`.
+- The generated types are located in `os.tmpdir()` (changeable via `DERIVE_TYPE_FOLDER`).
+- The generated types are deleted after 5 days (changeable via `DERIVE_TYPE_MAX_AGE_DAYS`).
+- Debugging output can be enabled by setting `DERIVE_TYPE_DEBUG` to true.
 - You can find some example type generations [in the test file](https://github.com/David-Kunz/derive-type/blob/main/tests/derive.test.js).
 
 ## Introduction Video

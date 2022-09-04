@@ -17,6 +17,9 @@ const SHAPE = {
 
 const DERIVE_TYPE_FOLDER =
   process.env.DERIVE_TYPE_FOLDER || path.join(os.tmpdir(), 'derive-type-gen')
+const DERIVE_TYPE_MAX_AGE_DAYS = process.env.DERIVE_TYPE_MAX_AGE_DAYS
+  ? Number(process.env.DERIVE_TYPE_MAX_AGE_DAYS)
+  : 5
 
 function initializeFilesystem() {
   dbg('### Initialize')
@@ -27,8 +30,18 @@ function initializeFilesystem() {
   const files = fs.readdirSync(DERIVE_TYPE_FOLDER)
   files.forEach((file) => {
     const filePath = path.join(DERIVE_TYPE_FOLDER, file)
-    dbg('Deleting file', filePath)
-    fs.unlinkSync(filePath)
+    if (
+      path.extname(file) !== '.d.ts' ||
+      (new Date() - new Date(fs.statSync(filePath).birthtime)) /
+        1000 /
+        60 /
+        60 /
+        24 >
+        DERIVE_TYPE_MAX_AGE_DAYS
+    ) {
+      dbg('Deleting file', filePath)
+      fs.unlinkSync(filePath)
+    }
   })
 }
 
@@ -218,14 +231,14 @@ function _main(cb) {
   const lineDeletionLocations = new Map() // stores removals per file
   const cache = new Map() // speedup and needed for tests since we don't change the original test files
   files.forEach((file) => {
+    if (path.extname(file) !== '.tmp') return
     const decoded = decodeFromFileName(file)
-    const [fileName, line, column] = decoded
-      .slice(1, decoded.length - 1)
-      .split(':')
-    const meta = { fileName, line: Number(line), column: Number(column) }
+    const [fileName, line] = decoded.split(':')
+    const meta = { fileName, line: Number(line) }
     dbg(meta)
     const filePath = path.join(DERIVE_TYPE_FOLDER, file)
     const content = fs.readFileSync(filePath, 'utf8').split('\n').slice(0, -1)
+    fs.unlinkSync(filePath)
     const unique = [...new Set(content)].map((s) => JSON.parse(s))
     if (process.env.DERIVE_TYPE_DEBUG) dbg('unique:', JSON.stringify(unique))
     let merged = unique[0]
@@ -239,9 +252,10 @@ function _main(cb) {
     dbg(res)
     dbg('###############################')
     dbg()
-    const typeDef = `/** @type { import("${filePath}").GEN } Generated */`
+    const baseDefFile = filePath.slice(0, filePath.lastIndexOf('.'))
+    const typeDef = `/** @type { import("${baseDefFile}").GEN } Generated */`
 
-    const typeDefFilePath = filePath + '.d.ts'
+    const typeDefFilePath = baseDefFile + '.d.ts'
     fs.writeFileSync(typeDefFilePath, res)
     const fileCont =
       cache.get(meta.fileName) ||
@@ -286,7 +300,7 @@ function _main(cb) {
 }
 
 function main() {
-  const version = '1.0.3'
+  const version = '1.0.4'
   const runtimeArgs = process.argv.slice(2)
   if (runtimeArgs[0] === '--version' || runtimeArgs[0] === '-v') {
     console.log('Derive-Type Version', version)
@@ -385,12 +399,17 @@ function argumentToShape(arg, root, objCache = new Map(), path = '') {
   throw err
 }
 
-function encodeToFilename(obj) {
-  return Buffer.from(obj).toString('base64')
+function encodeToFilename(str) {
+  return (
+    Buffer.from(str.slice(1, str.lastIndexOf(':'))).toString('base64') + '.tmp'
+  )
 }
 
 function decodeFromFileName(fileName) {
-  return Buffer.from(fileName, 'base64').toString()
+  return Buffer.from(
+    fileName.slice(0, fileName.lastIndexOf('.')),
+    'base64'
+  ).toString()
 }
 
 function deriveType(...arg) {
@@ -402,7 +421,8 @@ function deriveType(...arg) {
     argsObj['arg' + idx] = arg
   })
   const argShapes = argumentToShape(argsObj, true)
-  const filePath = path.join(DERIVE_TYPE_FOLDER, encodeToFilename(locationInfo))
+  const encoded = encodeToFilename(locationInfo)
+  const filePath = path.join(DERIVE_TYPE_FOLDER, encoded)
   dbg('Appending file', filePath)
 
   dbg('shapes', argShapes)
@@ -414,8 +434,6 @@ deriveType._main = _main
 deriveType._init = initializeFilesystem
 
 // TODO:
-// - file locks for concurrent append
-// - multiline functions
 // - non-function types
 
 module.exports = deriveType
