@@ -1,7 +1,7 @@
 {
   "name": "derive-type",
-  "version": "1.0.0",
-  "description": "Derive types dynamically by running tests to capture value combinations",
+  "version": "1.0.1",
+  "description": "Generate [TypeScript](https://www.typescriptlang.org/) type definitions based on functions invocations and embed them as [JSDoc](https://jsdoc.app/) comments in your JavaScript code.",
   "main": "index.js",
   "scripts": {
     "test": "jest"
