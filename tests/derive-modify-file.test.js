@@ -5,7 +5,7 @@ describe('modify file', () => {
     dt._init()
   })
 
-  test('single var', (done) => {
+  test('single var but unsupported', (done) => {
     // comment
     const x = 'foo'
     dt(x)
@@ -47,6 +47,32 @@ describe('modify file', () => {
       )
       expect(modifiedFile).toEqual(
         expect.stringMatching(/function simpleFn\(x\) {\n\s*}/) // removed dt(x) call in function
+      )
+      done()
+    })
+  })
+
+  test('multi-line function', (done) => {
+    // comment
+    function multiLineFn(x) {
+      dt(x)
+    }
+    multiLineFn(1)
+
+    dt._main(({ res, typeDef, modifiedFile }) => {
+      expect(res).toEqual('export type GEN = (arg0: number) => any')
+      expect(typeDef).toEqual(
+        expect.stringMatching(
+          /^\/\*\* @type { import\(.*\)\.GEN } Generated \*\//
+        )
+      )
+      expect(modifiedFile).toEqual(
+        expect.stringMatching(
+          /\/\/ comment\n\s*\/\*\* @type { import\(.*\)\.GEN } Generated \*\/\n\s*function multiLineFn/ // type annotation
+        )
+      )
+      expect(modifiedFile).toEqual(
+        expect.stringMatching(/function multiLineFn\(x\)\n\s*{\n\s*}/) // removed dt(x) call in function
       )
       done()
     })

@@ -246,7 +246,6 @@ function _main(cb) {
     const fileCont =
       cache.get(meta.fileName) ||
       fs.readFileSync(meta.fileName, 'utf8').split('\n')
-    let hadTypeAnnotations = false
     if (!lineDeletionLocations.has(meta.fileName))
       lineDeletionLocations.set(meta.fileName, [])
     const adjustedLine = lineDeletionLocations
@@ -255,14 +254,23 @@ function _main(cb) {
         if (p > c) return p - 1
         return p
       }, meta.line)
-    if (adjustedLine >= 3 && fileCont[adjustedLine - 3].startsWith('/** @type { import('))
-      hadTypeAnnotations = true
+    let functionIdx = adjustedLine - 2
+    // those keywords could also be in a string default value, ignore that case for now
+    while (
+      functionIdx >= 0 &&
+      !fileCont[functionIdx].match(/(^|\s)\s*(function|var|const|let)\s+/)
+    ) {
+      functionIdx = functionIdx - 1
+    }
+    const hadTypeAnnotations =
+      functionIdx >= 1 &&
+      fileCont[functionIdx - 1].startsWith('/** @type { import(')
     if (hadTypeAnnotations) {
-      fileCont.splice(adjustedLine - 3, 1, typeDef) // replace existing type annotation
+      fileCont.splice(functionIdx - 1, 1, typeDef) // replace existing type annotation
       fileCont.splice(adjustedLine - 1, 1) // remove derive-type function call
       lineDeletionLocations.get(meta.fileName).push(adjustedLine - 1) // effectively removed one line, remember location
     } else {
-      fileCont.splice(adjustedLine - 2, 0, typeDef) // insert type annotation
+      fileCont.splice(functionIdx, 0, typeDef) // insert type annotation
       fileCont.splice(adjustedLine, 1) // remove derive-type function call
     }
     cache.set(meta.fileName, fileCont)
@@ -278,7 +286,7 @@ function _main(cb) {
 }
 
 function main() {
-  const version = '0.0.996'
+  const version = '0.0.997'
   const runtimeArgs = process.argv.slice(2)
   if (runtimeArgs[0] === '--version' || runtimeArgs[0] === '-v') {
     console.log('Derive-Type Version', version)

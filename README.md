@@ -3,8 +3,8 @@
 A simple tool to generate [TypeScript](https://www.typescriptlang.org/) type definitions based on functions invocations and embed them as [JSDoc](https://jsdoc.app/) comments in your JavaScript code.
 
 ## Demo
-https://user-images.githubusercontent.com/1009936/188266007-269ee08a-392c-4dfe-af80-444059ebba39.mov
 
+https://user-images.githubusercontent.com/1009936/188266007-269ee08a-392c-4dfe-af80-444059ebba39.mov
 
 ## Installation
 
@@ -69,7 +69,7 @@ myFunction(1, 2)
 - The generated types are based on the merged input of all function invocations.
 - If it's not an arrow function, you can also write `require('derive-type')(...arguments)`.
 - The generated types are located in `os.tmpdir()`, this can be changed through the environment variable `DERIVE_TYPE_FOLDER`.
-- The function definition must begin in a new line and its arguments must not span multiple lines.
+- The function definition must begin in a new line.
 - Debugging output can be enabled by setting the environment variable `DERIVE_TYPE_DEBUG` to true.
 - You can also install `derive-type` globally, then you must use the path of your global package, e.g. `require("/usr/local/lib/node_modules/derive-type/")`.
 - You can find some example type generations [in the test file](https://github.com/David-Kunz/derive-type/blob/main/tests/derive.test.js).
