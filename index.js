@@ -31,7 +31,7 @@ function initializeFilesystem() {
   files.forEach((file) => {
     const filePath = path.join(DERIVE_TYPE_FOLDER, file)
     if (
-      path.extname(file) !== '.d.ts' ||
+      !filePath.endsWith('.d.ts') ||
       (new Date() - new Date(fs.statSync(filePath).birthtime)) /
         1000 /
         60 /
@@ -300,7 +300,7 @@ function _main(cb) {
 }
 
 function main() {
-  const version = '1.0.4'
+  const version = '1.0.5'
   const runtimeArgs = process.argv.slice(2)
   if (runtimeArgs[0] === '--version' || runtimeArgs[0] === '-v') {
     console.log('Derive-Type Version', version)
