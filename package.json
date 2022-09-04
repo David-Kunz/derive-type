@@ -1,7 +1,7 @@
 {
   "name": "derive-type",
-  "version": "1.0.2",
-  "description": "Generate TypeScript type definitions based on functions invocations and embed them as JSDoc comments in your JavaScript code.",
+  "version": "1.0.3",
+  "description": "Generate TypeScript type definitions based on function invocations and embed them as JSDoc comments in your JavaScript code.",
   "main": "index.js",
   "scripts": {
     "test": "jest"

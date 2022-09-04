@@ -1,6 +1,6 @@
 # Derive Type
 
-Generate [TypeScript](https://www.typescriptlang.org/) type definitions based on functions invocations and embed them as [JSDoc](https://jsdoc.app/) comments in your JavaScript code.
+Generate [TypeScript](https://www.typescriptlang.org/) type definitions based on function invocations and embed them as [JSDoc](https://jsdoc.app/) comments in your JavaScript code.
 
 ## Demo
 
